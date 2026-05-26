@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { auth } from "@clerk/nextjs/server";  
+import ReviewForm from "./ReviewForm";  
 
 // Funcția care trage datele rămâne la fel
 async function getMovieDetails(id: string) {
@@ -20,6 +22,7 @@ export default async function MoviePage({ params }: { params: Promise<{ id: stri
   // AICI extragem id-ul corect folosind await
   const resolvedParams = await params;
   const movie = await getMovieDetails(resolvedParams.id);
+  const { userId } = await auth();
 
   if (!movie) {
     return <div className="text-white text-center mt-20 text-2xl">Filmul nu a putut fi găsit sau există o problemă de conexiune.</div>;
@@ -62,7 +65,14 @@ export default async function MoviePage({ params }: { params: Promise<{ id: stri
 
           <div className="border-t border-zinc-800 pt-8 mt-auto">
             <h3 className="text-xl font-bold text-yellow-500 mb-2">Zona de Recenzii</h3>
-            <p className="text-zinc-500">Soon recenzii pt film.</p>
+            
+            {!userId ? (
+              <p className="text-zinc-500 bg-[#1f1f1f] p-4 rounded-lg border border-zinc-800">
+                Trebuie să te <Link href="/" className="text-yellow-500 underline">autentifici pe pagina principală</Link> pentru a lăsa o recenzie.
+              </p>
+            ) : (
+              <ReviewForm movieId={movie.id} movieTitle={movie.title} />
+            )}
           </div>
         </div>
       </div>
