@@ -28,11 +28,13 @@ export default async function Home() {
         update: {
           email: user.emailAddresses[0].emailAddress,
           username: user.username || `user_${userId.slice(0, 5)}`, 
+          avatarUrl: user.imageUrl,
         },
         create: {
           id: userId,
           email: user.emailAddresses[0].emailAddress,
           username: user.username || `user_${userId.slice(0, 5)}`,
+          avatarUrl: user.imageUrl,
         }
       });
     }

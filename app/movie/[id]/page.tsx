@@ -1,8 +1,8 @@
 import Link from "next/link";
-import { auth } from "@clerk/nextjs/server";  
-import ReviewForm from "./ReviewForm";  
+import { auth } from "@clerk/nextjs/server";
+import ReviewForm from "./ReviewForm";
+import { prisma } from "../../../lib/prisma";
 
-// Funcția care trage datele rămâne la fel
 async function getMovieDetails(id: string) {
   const res = await fetch(
     `https://api.themoviedb.org/3/movie/${id}?api_key=${process.env.TMDB_API_KEY}&language=ro-RO`,
@@ -16,17 +16,22 @@ async function getMovieDetails(id: string) {
   return res.json();
 }
 
-// AICI am actualizat tipul pentru params ca fiind un Promise
 export default async function MoviePage({ params }: { params: Promise<{ id: string }> }) {
-  
-  // AICI extragem id-ul corect folosind await
   const resolvedParams = await params;
+  const movieId = parseInt(resolvedParams.id);
+  
   const movie = await getMovieDetails(resolvedParams.id);
   const { userId } = await auth();
 
   if (!movie) {
-    return <div className="text-white text-center mt-20 text-2xl">Filmul nu a putut fi găsit sau există o problemă de conexiune.</div>;
+    return <div className="text-white text-center mt-20 text-2xl">Filmul nu a putut fi găsit.</div>;
   }
+
+  const reviews = await prisma.review.findMany({
+    where: { movieId: movieId },
+    include: { user: true },
+    orderBy: { createdAt: 'desc' }
+  });
 
   return (
     <main className="min-h-screen bg-[#141414] text-white">
@@ -67,12 +72,58 @@ export default async function MoviePage({ params }: { params: Promise<{ id: stri
             <h3 className="text-xl font-bold text-yellow-500 mb-2">Zona de Recenzii</h3>
             
             {!userId ? (
-              <p className="text-zinc-500 bg-[#1f1f1f] p-4 rounded-lg border border-zinc-800">
+              <p className="text-zinc-500 bg-[#1f1f1f] p-4 rounded-lg border border-zinc-800 mb-8">
                 Trebuie să te <Link href="/" className="text-yellow-500 underline">autentifici pe pagina principală</Link> pentru a lăsa o recenzie.
               </p>
             ) : (
-              <ReviewForm movieId={movie.id} movieTitle={movie.title} />
+              <div className="mb-12">
+                <ReviewForm movieId={movie.id} movieTitle={movie.title} />
+              </div>
             )}
+
+            <div className="space-y-6">
+              <h4 className="text-lg font-bold text-zinc-300 border-b border-zinc-800 pb-2">
+                Păreri de la utilizatori ({reviews.length})
+              </h4>
+              
+              {reviews.length === 0 ? (
+                <p className="text-zinc-500 italic">Nu există nicio recenzie pentru acest film. Fii primul care adaugă una!</p>
+              ) : (
+                reviews.map((review) => (
+                  <div key={review.id} className="bg-[#1f1f1f] p-5 rounded-lg border border-zinc-800 shadow-md">
+                    <div className="flex justify-between items-start mb-4">
+                      
+                      <div className="flex items-center gap-3">
+                        {review.user.avatarUrl ? (
+                          <img 
+                            src={review.user.avatarUrl} 
+                            alt={review.user.username} 
+                            className="w-10 h-10 rounded-full border border-zinc-700 object-cover" 
+                          />
+                        ) : (
+                          <div className="w-10 h-10 bg-zinc-900 rounded-full flex items-center justify-center text-yellow-500 font-bold border border-zinc-700">
+                            {review.user.username.substring(0, 2).toUpperCase()}
+                          </div>
+                        )}
+                        <div>
+                          <p className="font-semibold text-zinc-200">{review.user.username}</p>
+                          <p className="text-xs text-zinc-500">
+                            {new Date(review.createdAt).toLocaleDateString("ro-RO")}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="bg-zinc-900 px-3 py-1 rounded text-yellow-500 font-bold border border-zinc-800">
+                        ★ {(review.rating / 2).toFixed(1)}
+                      </div>
+                    </div>
+                    
+                    <p className="text-zinc-300 leading-relaxed">{review.comment}</p>
+                  </div>
+                ))
+              )}
+            </div>
+            
           </div>
         </div>
       </div>
