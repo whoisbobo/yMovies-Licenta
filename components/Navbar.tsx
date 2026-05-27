@@ -30,8 +30,8 @@ export default function Navbar() {
           </Link>
           <div className="hidden md:flex gap-6 text-zinc-400 font-medium">
             <Link href="/" className="hover:text-white transition-colors">Filme</Link>
-            <span className="cursor-not-allowed opacity-40 text-xs bg-zinc-800 px-2 py-0.5 rounded text-zinc-500">Seriale</span>
-            <span className="cursor-not-allowed opacity-40 text-xs bg-zinc-800 px-2 py-0.5 rounded text-zinc-500">Categorii</span>
+            <Link href="/tv" className="hover:text-white transition-colors">Seriale</Link>
+            <Link href="/categories" className="hover:text-white transition-colors">Categorii</Link>
           </div>
         </div>
 

@@ -2,29 +2,44 @@ import { auth } from "@clerk/nextjs/server";
 import ReviewForm from "./ReviewForm";
 import { prisma } from "../../../lib/prisma";
 
-async function getMovieDetails(id: string) {
+// Modificăm funcția să ceară datele din ruta corectă (movie sau tv)
+async function getMovieDetails(id: string, type: string) {
+  const endpointType = type === "tv" ? "tv" : "movie";
   const res = await fetch(
-    `https://api.themoviedb.org/3/movie/${id}?api_key=${process.env.TMDB_API_KEY}&language=ro-RO`,
+    `https://api.themoviedb.org/3/${endpointType}/${id}?api_key=${process.env.TMDB_API_KEY}&language=ro-RO`,
     { cache: 'no-store' }
   );
 
   if (!res.ok) {
-    console.log("Eroare de la TMDB:", res.status);
+    console.log(`Eroare de la TMDB (${endpointType}):`, res.status);
     return null;
   }
   return res.json();
 }
 
-export default async function MoviePage({ params }: { params: Promise<{ id: string }> }) {
+export default async function MoviePage({ 
+  params,
+  searchParams
+}: { 
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ type?: string }>;
+}) {
   const resolvedParams = await params;
-  const movieId = parseInt(resolvedParams.id);
+  const resolvedSearchParams = await searchParams;
   
-  const movie = await getMovieDetails(resolvedParams.id);
+  const movieId = parseInt(resolvedParams.id);
+  const contentType = resolvedSearchParams.type || "movie";
+  
+  const movie = await getMovieDetails(resolvedParams.id, contentType);
   const { userId } = await auth();
 
   if (!movie) {
-    return <div className="text-white text-center mt-20 text-2xl">Filmul nu a putut fi găsit.</div>;
+    return <div className="text-white text-center mt-20 text-2xl">Conținutul nu a putut fi găsit.</div>;
   }
+
+  // Sincronizăm variabilele specifice (filmele au title/release_date, serialele au name/first_air_date)
+  const title = movie.title || movie.name;
+  const releaseDate = movie.release_date || movie.first_air_date;
 
   const reviews = await prisma.review.findMany({
     where: { movieId: movieId },
@@ -37,19 +52,19 @@ export default async function MoviePage({ params }: { params: Promise<{ id: stri
       <div className="w-full md:w-1/3 flex-shrink-0">
         <img
           src={`https://image.tmdb.org/t/p/w500${movie.poster_path}`}
-          alt={movie.title}
+          alt={title}
           className="w-full rounded-xl shadow-2xl shadow-yellow-500/10 border border-zinc-800"
         />
       </div>
 
       <div className="w-full md:w-2/3 flex flex-col justify-center">
-        <h1 className="text-5xl font-extrabold mb-4">{movie.title}</h1>
+        <h1 className="text-5xl font-extrabold mb-4">{title}</h1>
         
         <div className="flex gap-4 items-center mb-6 text-zinc-400 font-medium">
           <span className="bg-yellow-500 text-zinc-900 px-3 py-1 rounded font-bold">
             ★ {movie.vote_average?.toFixed(1)}
           </span>
-          <span>{movie.release_date?.substring(0, 4)}</span>
+          <span>{releaseDate?.substring(0, 4)}</span>
           <span>•</span>
           <span className="flex gap-2">
             {movie.genres?.map((g: { id: number; name: string }) => g.name).join(", ")}
@@ -57,7 +72,7 @@ export default async function MoviePage({ params }: { params: Promise<{ id: stri
         </div>
 
         <p className="text-lg text-zinc-300 leading-relaxed mb-8">
-          {movie.overview || "Acest film nu are încă o descriere în limba română."}
+          {movie.overview || "Acest conținut nu are încă o descriere în limba română."}
         </p>
 
         <div className="border-t border-zinc-800 pt-8 mt-auto">
@@ -69,7 +84,7 @@ export default async function MoviePage({ params }: { params: Promise<{ id: stri
             </p>
           ) : (
             <div className="mb-12">
-              <ReviewForm movieId={movie.id} movieTitle={movie.title} />
+              <ReviewForm movieId={movie.id} movieTitle={title} />
             </div>
           )}
 
@@ -79,7 +94,7 @@ export default async function MoviePage({ params }: { params: Promise<{ id: stri
             </h4>
             
             {reviews.length === 0 ? (
-              <p className="text-zinc-500 italic">Nu există nicio recenzie pentru acest film. Fii primul care adaugă una!</p>
+              <p className="text-zinc-500 italic">Nu există nicio recenzie. Fii primul care adaugă una!</p>
             ) : (
               reviews.map((review) => (
                 <div key={review.id} className="bg-[#1f1f1f] p-5 rounded-lg border border-zinc-800 shadow-md">
