@@ -11,14 +11,19 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
+enum Role {
+  USER
+  ADMIN
+}
+
 model User {
   id        String   @id @default(uuid())
   email     String   @unique
-  avatarUrl String?
   username  String   @unique
+  avatarUrl String?
+  role      Role     @default(USER) 
   createdAt DateTime @default(now())
-  
-  reviews   Review[] 
+  reviews   Review[]
 }
 
 model Movie {

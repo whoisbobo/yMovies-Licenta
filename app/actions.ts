@@ -60,3 +60,38 @@ export async function submitReview(formData: FormData) {
   // 6. Dăm un refresh automat paginii filmului pentru a vedea datele noi
   revalidatePath(`/movie/${movieId}`);
 }
+
+export async function deleteReview(reviewId: number) {
+  // 1. Verificăm cine este utilizatorul curent logat în Clerk
+  const { userId } = await auth();
+  if (!userId) throw new Error("Neautorizat");
+
+  // 2. Extragem datele utilizatorului din baza noastră pentru a-i vedea ROLUL
+  const currentUserRecord = await prisma.user.findUnique({
+    where: { id: userId }
+  });
+
+  // 3. Găsim recenzia pe care vrea să o șteargă
+  const review = await prisma.review.findUnique({
+    where: { id: reviewId }
+  });
+
+  if (!review) throw new Error("Recenzia nu a fost găsită");
+
+  // 4. VERIFICAREA CRUCIALĂ DE SECURITATE:
+  // Permitem ștergerea DOAR dacă: utilizatorul este ADMIN sau este chiar cel care a scris recenzia
+  const isAdmin = currentUserRecord?.role === "ADMIN";
+  const isOwner = review.userId === userId;
+
+  if (!isAdmin && !isOwner) {
+    throw new Error("Nu ai permisiunea de a șterge această recenzie!");
+  }
+
+  // 5. Dacă a trecut testul, o ștergem
+  await prisma.review.delete({
+    where: { id: reviewId }
+  });
+
+  // 6. Refresh automat la pagină
+  revalidatePath(`/movie/${review.movieId}`);
+}

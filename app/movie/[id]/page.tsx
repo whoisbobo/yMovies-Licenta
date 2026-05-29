@@ -1,6 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import ReviewForm from "./ReviewForm";
 import { prisma } from "../../../lib/prisma";
+import DeleteButton from "./DeleteButton";
 
 // Modificăm funcția să ceară datele din ruta corectă (movie sau tv)
 async function getMovieDetails(id: string, type: string) {
@@ -46,6 +47,9 @@ export default async function MoviePage({
     include: { user: true },
     orderBy: { createdAt: 'desc' }
   });
+
+// Aflăm rolul utilizatorului curent
+const dbUser = userId ? await prisma.user.findUnique({ where: { id: userId } }) : null;
 
   return (
     <main className="max-w-6xl mx-auto px-8 py-8 flex flex-col md:flex-row gap-12 flex-1 w-full">
@@ -100,6 +104,7 @@ export default async function MoviePage({
                 <div key={review.id} className="bg-[#1f1f1f] p-5 rounded-lg border border-zinc-800 shadow-md">
                   <div className="flex justify-between items-start mb-4">
                     
+                    {/* Stânga: Avatar + Nume + Dată */}
                     <div className="flex items-center gap-3">
                       {review.user.avatarUrl ? (
                         <img 
@@ -120,11 +125,21 @@ export default async function MoviePage({
                       </div>
                     </div>
 
-                    <div className="bg-zinc-900 px-3 py-1 rounded text-yellow-500 font-bold border border-zinc-800">
-                      ★ {(review.rating / 2).toFixed(1)}
+                    {/* Dreapta: Notă + Buton Ștergere aliniate elegant */}
+                    <div className="flex items-center gap-3">
+                      <div className="bg-zinc-900 px-3 py-1 rounded text-yellow-500 font-bold border border-zinc-800">
+                        ★ {(review.rating / 2).toFixed(1)}
+                      </div>
+                      
+                      {/* Butonul de ștergere securizat pe client */}
+                      {(dbUser?.role === "ADMIN" || dbUser?.id === review.userId) && (
+                        <DeleteButton reviewId={review.id} />
+                      )}
                     </div>
+
                   </div>
                   
+                  {/* Comentariul recenziei */}
                   <p className="text-zinc-300 leading-relaxed">{review.comment}</p>
                 </div>
               ))
