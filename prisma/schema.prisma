@@ -24,7 +24,24 @@ model User {
   role      Role     @default(USER) 
   createdAt DateTime @default(now())
   reviews   Review[]
+  watchlist WatchlistItem[]
 }
+
+// Adaugă acest model nou jos de tot în fișier
+model WatchlistItem {
+  id        String   @id @default(uuid())
+  userId    String
+  movieId   Int
+  createdAt DateTime @default(now())
+
+  // Relațiile cu tabelele existente (ștergerea automată dacă user-ul sau filmul dispar)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  movie     Movie    @relation(fields: [movieId], references: [id], onDelete: Cascade)
+
+  // Un utilizator nu poate adăuga același film de două ori în listă
+  @@unique([userId, movieId])
+}
+
 
 model Movie {
   id          Int      @id @default(autoincrement())
@@ -32,6 +49,7 @@ model Movie {
   description String?
   releaseDate DateTime?
   posterUrl   String?
+  watchlist WatchlistItem[]
   
   categoryId  Int
   category    Category @relation(fields: [categoryId], references: [id])

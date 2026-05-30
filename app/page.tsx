@@ -1,16 +1,21 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @next/next/no-img-element */
 import { auth, currentUser } from "@clerk/nextjs/server";
 import { prisma } from "../lib/prisma";
 import Link from "next/link";
+import { cookies } from "next/headers"; // Importăm unalta pentru cookie-uri
+import { dictionary, Locale } from "../lib/dictionary";
 
-
-// Funcția actualizată pentru a accepta și parametrul "page"
-async function getMovies(query?: string, genreId?: string, page: number = 1) {
-  let endpoint = `https://api.themoviedb.org/3/movie/popular?api_key=${process.env.TMDB_API_KEY}&language=ro-RO&page=${page}`;
+// Funcția primește acum și limba activă
+async function getMovies(query: string | undefined, genreId: string | undefined, page: number = 1, lang: string = "ro") {
+  const tmdbLang = lang === "en" ? "en-US" : "ro-RO"; // Convertim pentru TMDB
+  
+  let endpoint = `https://api.themoviedb.org/3/movie/popular?api_key=${process.env.TMDB_API_KEY}&language=${tmdbLang}&page=${page}`;
 
   if (query) {
-    endpoint = `https://api.themoviedb.org/3/search/multi?api_key=${process.env.TMDB_API_KEY}&language=ro-RO&query=${query}&page=${page}`;
+    endpoint = `https://api.themoviedb.org/3/search/multi?api_key=${process.env.TMDB_API_KEY}&language=${tmdbLang}&query=${encodeURIComponent(query)}&page=${page}`;
   } else if (genreId) {
-    endpoint = `https://api.themoviedb.org/3/discover/movie?api_key=${process.env.TMDB_API_KEY}&language=ro-RO&with_genres=${genreId}&page=${page}`;
+    endpoint = `https://api.themoviedb.org/3/discover/movie?api_key=${process.env.TMDB_API_KEY}&language=${tmdbLang}&with_genres=${encodeURIComponent(genreId)}&page=${page}`;
   }
 
   const res = await fetch(endpoint, { cache: 'no-store' });
@@ -30,7 +35,6 @@ export default async function Home({
 }) {
   const { userId } = await auth();
 
-  // Sincronizare User Clerk cu Supabase
   if (userId) {
     const user = await currentUser();
     if (user) {
@@ -51,24 +55,27 @@ export default async function Home({
     }
   }
 
+  // Citim cookie-ul de limbă pe server
+  const cookieStore = await cookies();
+  const lang = (cookieStore.get("locale")?.value || "ro") as Locale;
+  const t = dictionary[lang];
+
   const resolvedSearchParams = await searchParams;
   const query = resolvedSearchParams.search;
   const genreId = resolvedSearchParams.genre;
   const genreName = resolvedSearchParams.name;
-  
-  // Extragem pagina curentă (default este 1)
   const currentPage = parseInt(resolvedSearchParams.page || "1", 10);
 
-  const movies = await getMovies(query, genreId, currentPage);
+  // Trimitem limba extrasă din cookie către funcția de fetch
+  const movies = await getMovies(query, genreId, currentPage, lang);
 
-  let pageTitle = "Filme Populare";
+  let pageTitle = t.popularMovies;
   if (query) {
-    pageTitle = `Rezultatele căutării pentru: "${query}"`;
+    pageTitle = lang === "en" ? `Search results for: "${query}"` : `Rezultatele căutării pentru: "${query}"`;
   } else if (genreName) {
-    pageTitle = `Categoria: ${genreName}`;
+    pageTitle = lang === "en" ? `Category: ${genreName}` : `Categoria: ${genreName}`;
   }
 
-  // Funcție ajutătoare pentru a păstra filtrele în URL când schimbăm pagina
   const buildPageLink = (newPage: number) => {
     const params = new URLSearchParams();
     if (query) params.set("search", query);
@@ -86,7 +93,7 @@ export default async function Home({
 
       {movies.length === 0 ? (
         <div className="text-center text-zinc-500 mt-20 text-lg italic">
-          Nu am găsit niciun conținut pe această pagină.
+          {lang === "en" ? "No content found on this page." : "Nu am găsit niciun conținut pe această pagină."}
         </div>
       ) : (
         <>
@@ -97,21 +104,13 @@ export default async function Home({
               const contentType = isTv ? 'tv' : 'movie';
 
               return (
-                <Link
-                  href={`/movie/${movie.id}?type=${contentType}`}
-                  key={`${contentType}-${movie.id}`}
-                  className="group cursor-pointer flex flex-col gap-2"
-                >
+                <Link href={`/movie/${movie.id}?type=${contentType}`} key={`${contentType}-${movie.id}`} className="group cursor-pointer flex flex-col gap-2">
                   <div className="relative overflow-hidden rounded-lg shadow-md transition-transform group-hover:scale-105 aspect-[2/3]">
                     {movie.poster_path ? (
-                      <img
-                        src={`https://image.tmdb.org/t/p/w500${movie.poster_path}`}
-                        alt={displayTitle}
-                        className="w-full h-full object-cover"
-                      />
+                      <img src={`https://image.tmdb.org/t/p/w500${movie.poster_path}`} alt={displayTitle} className="w-full h-full object-cover" />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center bg-zinc-800 text-zinc-500 text-sm">
-                        Fără Poster
+                        {lang === "en" ? "No Poster" : "Fără Poster"}
                       </div>
                     )}
                     <div className="absolute top-2 right-2 bg-zinc-900/90 text-yellow-500 px-2 py-1 rounded text-xs font-bold shadow">
@@ -119,31 +118,30 @@ export default async function Home({
                     </div>
                   </div>
                   <h3 className="font-medium text-zinc-300 line-clamp-1 group-hover:text-yellow-500 transition-colors">
-                    {displayTitle} {isTv && <span className="text-xs text-zinc-500 font-normal">(Serial)</span>}
+                    {displayTitle} {isTv && <span className="text-xs text-zinc-500 font-normal">({lang === "en" ? "TV Show" : "Serial"})</span>}
                   </h3>
                 </Link>
               );
             })}
           </div>
 
-          {/* Sistemul de Paginare UX */}
           <div className="flex justify-center items-center gap-6 mt-12 mb-8">
             {currentPage > 1 ? (
               <Link href={buildPageLink(currentPage - 1)} className="bg-zinc-800 hover:bg-zinc-700 text-white px-6 py-2 rounded-lg font-medium transition-colors">
-                &larr; Pagina Anterioară
+                &larr; {lang === "en" ? "Previous Page" : "Pagina Anterioară"}
               </Link>
             ) : (
               <div className="px-6 py-2 rounded-lg font-medium bg-zinc-900 text-zinc-600 cursor-not-allowed">
-                &larr; Pagina Anterioară
+                &larr; {lang === "en" ? "Previous Page" : "Pagina Anterioară"}
               </div>
             )}
             
             <span className="text-yellow-500 font-bold bg-zinc-900/50 px-4 py-2 rounded-lg border border-yellow-500/20">
-              Pagina {currentPage}
+              {lang === "en" ? "Page" : "Pagina"} {currentPage}
             </span>
 
             <Link href={buildPageLink(currentPage + 1)} className="bg-zinc-800 hover:bg-zinc-700 text-white px-6 py-2 rounded-lg font-medium transition-colors">
-              Pagina Următoare &rarr;
+              {lang === "en" ? "Next Page" : "Pagina Următoare"} &rarr;
             </Link>
           </div>
         </>

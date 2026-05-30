@@ -1,9 +1,13 @@
 import Link from "next/link";
+import { cookies } from "next/headers"; // Adăugat pentru detectarea limbii
 
-async function getGenres() {
+async function getGenres(lang: string = "ro") {
+  // Convertim limba selectată pentru API-ul TMDB
+  const tmdbLang = lang === "en" ? "en-US" : "ro-RO";
+  
   const res = await fetch(
-    `https://api.themoviedb.org/3/genre/movie/list?api_key=${process.env.TMDB_API_KEY}&language=ro-RO`,
-    { cache: 'no-store' }
+    `https://api.themoviedb.org/3/genre/movie/list?api_key=${process.env.TMDB_API_KEY}&language=${tmdbLang}`,
+    { cache: "no-store" }
   );
   if (!res.ok) return [];
   const data = await res.json();
@@ -11,8 +15,11 @@ async function getGenres() {
 }
 
 export default async function CategoriesPage() {
-  const genres = await getGenres();
-
+  // Citim cookie-ul de limbă pe server
+  const cookieStore = await cookies();
+  const lang = cookieStore.get("locale")?.value || "ro";
+  
+  const genres = await getGenres(lang);
   // Stiluri de fundal gradient specifice platformelor media premium
   const gradients = [
     "from-purple-950 to-indigo-900",
