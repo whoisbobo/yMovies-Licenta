@@ -76,12 +76,12 @@ export default function Navbar() {
             <div className="flex gap-3 items-center">
               <LanguageSwitcher currentLang={lang} />
               <SignInButton mode="modal">
-                <button className="px-4 py-2 text-zinc-300 font-semibold text-sm hover:text-white transition-colors">
+                <button className="px-4 py-2 text-zinc-300 font-semibold text-sm hover:text-white transition-colors cursor-pointer">
                   {t.login}
                 </button>
               </SignInButton>
               <SignUpButton mode="modal">
-                <button className="px-4 py-2 bg-yellow-500 text-zinc-900 font-bold text-sm rounded hover:bg-yellow-400 transition-colors">
+                <button className="px-4 py-2 bg-yellow-500 text-zinc-900 font-bold text-sm rounded hover:bg-yellow-400 transition-colors cursor-pointer">
                   {t.register}
                 </button>
               </SignUpButton>
