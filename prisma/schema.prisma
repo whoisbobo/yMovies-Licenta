@@ -46,11 +46,12 @@ model WatchlistItem {
 model Movie {
   id          Int      @id @default(autoincrement())
   title       String
+  mediaType  String
   description String?
   releaseDate DateTime?
   posterUrl   String?
   watchlist WatchlistItem[]
-  
+
   categoryId  Int
   category    Category @relation(fields: [categoryId], references: [id])
   reviews     Review[]

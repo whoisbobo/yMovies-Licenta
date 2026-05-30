@@ -86,7 +86,12 @@ export default async function MoviePage({
 
         {userId && (
           <div className="mb-6">
-            <WatchlistButton movieId={movie.id} movieTitle={title} initialInWatchlist={inWatchlist} />
+            <WatchlistButton 
+            movieId={movie.id} 
+            movieTitle={title} 
+            initialInWatchlist={inWatchlist}
+            mediaType={contentType}
+            />
           </div>
         )}
 

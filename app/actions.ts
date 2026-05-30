@@ -74,6 +74,7 @@ export async function submitReview(formData: FormData) {
       id: movieId,
       title: actualMovieTitle,
       categoryId: category.id,
+      mediaType: "movie", 
     }
   });
 
@@ -140,66 +141,45 @@ export async function deleteReview(reviewId: number) {
   revalidatePath(`/movie/${review.movieId}`);
 }
 
-export async function toggleWatchlist(movieId: number, movieTitle: string) {
-  // 1. Verificăm dacă utilizatorul este logat
+// Adaugă parametrul mediaType
+export async function toggleWatchlist(movieId: number, movieTitle: string, mediaType: string = "movie") {
   const { userId } = await auth();
   if (!userId) throw new Error("Neautorizat");
 
-  await ensureUserExists(userId);
-
-  if (isNaN(movieId) || movieId <= 0) throw new Error("ID film invalid");
-
-  // 2. Verificăm dacă filmul există deja în watchlist-ul utilizatorului
   const existingItem = await prisma.watchlistItem.findUnique({
-    where: {
-      userId_movieId: {
-        userId: userId,
-        movieId: movieId,
-      },
-    },
+    where: { userId_movieId: { userId, movieId } },
   });
 
   if (existingItem) {
-    // Dacă există deja, utilizatorul vrea să îl șteargă din listă
-    await prisma.watchlistItem.delete({
-      where: { id: existingItem.id },
-    });
+    await prisma.watchlistItem.delete({ where: { id: existingItem.id } });
   } else {
-    // Dacă nu există, trebuie mai întâi să ne asigurăm că filmul este înregistrat în Supabase (la fel ca la recenzii)
-    const actualMovieTitle = await fetchMovieTitle(movieId);
-
+    // 1. Asigurăm existența categoriei
     const category = await prisma.category.upsert({
       where: { name: "General" },
       update: {},
       create: { name: "General" },
     });
 
+    // 2. Actualizăm sau creăm filmul / serialul
     await prisma.movie.upsert({
       where: { id: movieId },
-      update: {},
+      update: { 
+        mediaType: mediaType, // Aici forțăm actualizarea tipului vechi!
+      },
       create: {
         id: movieId,
-        title: actualMovieTitle,
+        title: movieTitle,
+        mediaType: mediaType, 
         categoryId: category.id,
       },
     });
 
-    // Adăugăm efectiv filmul în watchlist
-    try {
-      await prisma.watchlistItem.create({
-        data: {
-          userId: userId,
-          movieId: movieId,
-        },
-      });
-    } catch (error: any) {
-      if (error.code !== 'P2002') {
-        throw error;
-      }
-    }
+    // 3. Adăugăm în watchlist
+    await prisma.watchlistItem.create({
+      data: { userId, movieId },
+    });
   }
 
-  // Actualizăm automat paginile pentru a reflecta schimbarea în interfață
   revalidatePath(`/movie/${movieId}`);
   revalidatePath("/watchlist");
 }
@@ -212,3 +192,4 @@ export async function changeLanguage(lang: string) {
   // Dăm un refresh "tăcut" la toată aplicația pentru a aplica noua limbă instant
   revalidatePath("/", "layout");
 }
+

@@ -41,23 +41,19 @@ export default async function WatchlistPage() {
         // Convertim limba pentru endpoint-ul TMDB
         const tmdbLang = lang === "en" ? "en-US" : "ro-RO";
         
+        // Luăm tipul (movie sau tv) direct din baza ta de date!
+        const mediaType = item.movie?.mediaType || "movie"; 
+        
+        // Facem o SINGURĂ interogare clară și precisă
         const res = await fetch(
-          `https://api.themoviedb.org/3/movie/${item.movieId}?api_key=${process.env.TMDB_API_KEY}&language=${tmdbLang}`,
+          `https://api.themoviedb.org/3/${mediaType}/${item.movieId}?api_key=${process.env.TMDB_API_KEY}&language=${tmdbLang}`,
           { cache: "no-store" }
         );
-        if (!res.ok) {
-          const tvRes = await fetch(
-            `https://api.themoviedb.org/3/tv/${item.movieId}?api_key=${process.env.TMDB_API_KEY}&language=${tmdbLang}`,
-            { cache: "no-store" }
-          );
-          if (tvRes.ok) {
-            const tvData = await tvRes.json();
-            return { ...tvData, media_type: "tv" };
-          }
-          return null;
-        }
-        const movieData = await res.json();
-        return { ...movieData, media_type: "movie" };
+        
+        if (!res.ok) return null;
+        
+        const data = await res.json();
+        return { ...data, media_type: mediaType };
       } catch {
         return null;
       }

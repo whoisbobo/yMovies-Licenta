@@ -7,9 +7,10 @@ interface WatchlistButtonProps {
   movieId: number;
   movieTitle: string;
   initialInWatchlist: boolean;
+  mediaType: string;
 }
 
-export default function WatchlistButton({ movieId, movieTitle, initialInWatchlist }: WatchlistButtonProps) {
+export default function WatchlistButton({ movieId, movieTitle, initialInWatchlist, mediaType }: WatchlistButtonProps) {
   const [inWatchlist, setInWatchlist] = useState(initialInWatchlist);
   const [loading, setLoading] = useState(false);
   const [lang, setLang] = useState("ro");
@@ -42,7 +43,7 @@ export default function WatchlistButton({ movieId, movieTitle, initialInWatchlis
   const handleClick = async () => {
     try {
       setLoading(true);
-      await toggleWatchlist(movieId, movieTitle);
+      await toggleWatchlist(movieId, movieTitle, mediaType);
       setInWatchlist(!inWatchlist);
     } catch (error) {
       console.error(texts.errorLog, error);
