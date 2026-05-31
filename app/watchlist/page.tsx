@@ -38,24 +38,27 @@ export default async function WatchlistPage() {
   const detailedMovies = await Promise.all(
     listItems.map(async (item) => {
       try {
-        // Convertim limba pentru endpoint-ul TMDB
+        // 1. Adaptăm limba în funcție de preferința utilizatorului
         const tmdbLang = lang === "en" ? "en-US" : "ro-RO";
         
-        // Luăm tipul (movie sau tv) direct din baza ta de date!
+        // 2. Luăm tipul corect (movie sau tv) salvat anterior în Prisma
         const mediaType = item.movie?.mediaType || "movie"; 
         
-        // Facem o SINGURĂ interogare clară și precisă
+        // 3. Facem cererea precisă către TMDB
         const res = await fetch(
           `https://api.themoviedb.org/3/${mediaType}/${item.movieId}?api_key=${process.env.TMDB_API_KEY}&language=${tmdbLang}`,
           { cache: "no-store" }
         );
         
+        // 4. Dacă TMDB dă eroare (filmul nu mai există / e fantomă), ignorăm elementul
         if (!res.ok) return null;
         
         const data = await res.json();
+        
+        // 5. Returnăm datele complete, asigurându-ne că forțăm tipul media corect
         return { ...data, media_type: mediaType };
       } catch {
-        return null;
+        return null; // Protecție suplimentară în caz că pică rețeaua
       }
     })
   );
