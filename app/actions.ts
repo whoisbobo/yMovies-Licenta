@@ -22,33 +22,33 @@ async function ensureUserExists(userId: string) {
   }
 }
 
-async function fetchMovieTitle(movieId: number): Promise<string> {
-  const res = await fetch(`https://api.themoviedb.org/3/movie/${movieId}?api_key=${process.env.TMDB_API_KEY}`);
+// Acum primește și parametrul mediaType
+async function fetchMovieTitle(movieId: number, mediaType: string): Promise<string> {
+  const res = await fetch(`https://api.themoviedb.org/3/${mediaType}/${movieId}?api_key=${process.env.TMDB_API_KEY}`);
+  
   if (res.ok) {
     const data = await res.json();
-    if (data.title) return data.title;
+    // TMDB folosește 'title' pentru filme și 'name' pentru seriale
+    return data.title || data.name || "Unknown Title";
   }
-  const tvRes = await fetch(`https://api.themoviedb.org/3/tv/${movieId}?api_key=${process.env.TMDB_API_KEY}`);
-  if (tvRes.ok) {
-    const data = await tvRes.json();
-    if (data.name) return data.name;
-  }
+  
   return "Unknown Title";
 }
 
 
 
 export async function submitReview(formData: FormData) {
-  // 1. Verificăm cine trimite recenzia
   const { userId } = await auth();
   if (!userId) throw new Error("Neautorizat");
 
   await ensureUserExists(userId);
 
-  // 2. Preluăm datele din formular și le validăm
   const movieIdRaw = formData.get("movieId");
   const ratingRaw = formData.get("rating");
   const comment = formData.get("comment") as string;
+  
+  // PRELUĂM TIPUL MEDIA DIN FORMULAR
+  const mediaType = (formData.get("mediaType") as string) || "movie";
 
   const movieId = parseInt(movieIdRaw as string);
   const rating = parseInt(ratingRaw as string);
@@ -57,52 +57,46 @@ export async function submitReview(formData: FormData) {
   if (isNaN(rating) || rating < 1 || rating > 10) throw new Error("Rating invalid");
   if (comment && comment.length > 2000) throw new Error("Comentariul este prea lung");
 
-  const actualMovieTitle = await fetchMovieTitle(movieId);
+  const actualMovieTitle = await fetchMovieTitle(movieId, mediaType);
 
-  // 3. Creăm o categorie generică (obligatorie pentru relația din schema Prisma)
   const category = await prisma.category.upsert({
     where: { name: "General" },
     update: {},
     create: { name: "General" }
   });
 
-  // 4. Salvăm filmul în Supabase (dacă e prima dată când cineva îi dă review)
+  // UPSERT CU CHEIE COMPUSĂ
   await prisma.movie.upsert({
-    where: { id: movieId },
-    update: {}, // Dacă există deja, nu-i facem nimic
+    where: { 
+      id_mediaType: { id: movieId, mediaType: mediaType } 
+    },
+    update: {}, 
     create: {
       id: movieId,
+      mediaType: mediaType,
       title: actualMovieTitle,
       categoryId: category.id,
-      mediaType: "movie", 
     }
   });
 
-  // 5. Salvăm recenzia
-  // Funcția 'findUnique' se asigură că nu lăsăm 2 recenzii la același film, așa cum e setat în schema ta
+  // VERIFICARE REVIEW CU CHEIE COMPUSĂ
   const existingReview = await prisma.review.findUnique({
     where: {
-      userId_movieId: {
-        userId: userId,
-        movieId: movieId
-      }
+      userId_movieId_mediaType: { userId, movieId, mediaType }
     }
   });
 
   if (existingReview) {
-    // Dacă utilizatorul a mai lăsat o recenzie, o actualizăm
     await prisma.review.update({
       where: { id: existingReview.id },
       data: { rating, comment }
     });
   } else {
-    // Dacă e prima dată, o creăm
     await prisma.review.create({
-      data: { rating, comment, userId, movieId }
+      data: { rating, comment, userId, movieId, mediaType }
     });
   }
 
-  // 6. Dăm un refresh automat paginii filmului pentru a vedea datele noi
   revalidatePath(`/movie/${movieId}`);
 }
 
@@ -141,42 +135,38 @@ export async function deleteReview(reviewId: number) {
   revalidatePath(`/movie/${review.movieId}`);
 }
 
-// Adaugă parametrul mediaType
 export async function toggleWatchlist(movieId: number, movieTitle: string, mediaType: string = "movie") {
   const { userId } = await auth();
   if (!userId) throw new Error("Neautorizat");
 
+  // VERIFICARE CU CHEIE COMPUSĂ
   const existingItem = await prisma.watchlistItem.findUnique({
-    where: { userId_movieId: { userId, movieId } },
+    where: { userId_movieId_mediaType: { userId, movieId, mediaType } },
   });
 
   if (existingItem) {
     await prisma.watchlistItem.delete({ where: { id: existingItem.id } });
   } else {
-    // 1. Asigurăm existența categoriei
     const category = await prisma.category.upsert({
       where: { name: "General" },
       update: {},
       create: { name: "General" },
     });
 
-    // 2. Actualizăm sau creăm filmul / serialul
+    // UPSERT CU CHEIE COMPUSĂ
     await prisma.movie.upsert({
-      where: { id: movieId },
-      update: { 
-        mediaType: mediaType, // Aici forțăm actualizarea tipului vechi!
-      },
+      where: { id_mediaType: { id: movieId, mediaType: mediaType } },
+      update: {},
       create: {
         id: movieId,
+        mediaType: mediaType,
         title: movieTitle,
-        mediaType: mediaType, 
         categoryId: category.id,
       },
     });
 
-    // 3. Adăugăm în watchlist
     await prisma.watchlistItem.create({
-      data: { userId, movieId },
+      data: { userId, movieId, mediaType },
     });
   }
 

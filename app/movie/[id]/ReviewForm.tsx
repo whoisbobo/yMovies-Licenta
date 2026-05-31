@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { submitReview } from "../../../app/actions";
 
-export default function ReviewForm({ movieId, movieTitle }: { movieId: number, movieTitle: string }) {
+export default function ReviewForm({ movieId, movieTitle, mediaType }: { movieId: number, movieTitle: string, mediaType: string }) {
   const [rating, setRating] = useState(0); 
   const [hover, setHover] = useState(0);   
   const [loading, setLoading] = useState(false);
@@ -66,6 +66,7 @@ export default function ReviewForm({ movieId, movieTitle }: { movieId: number, m
   return (
     <form onSubmit={handleSubmit} className="bg-[#1f1f1f] p-6 rounded-lg mt-4 border border-zinc-800">
       <input type="hidden" name="movieId" value={movieId} />
+      <input type="hidden" name="mediaType" value={mediaType} />
       <input type="hidden" name="movieTitle" value={movieTitle} />
       <input type="hidden" name="rating" value={rating} />
       

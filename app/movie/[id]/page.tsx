@@ -46,23 +46,27 @@ export default async function MoviePage({
   const releaseDate = movie.release_date || movie.first_air_date;
   const dbUser = userId ? await prisma.user.findUnique({ where: { id: userId } }) : null;
 
+  // AICI AM MODIFICAT: Acum filtrăm recenziile folosind și tipul media!
   const reviews = await prisma.review.findMany({
-    where: { movieId: movieId },
+    where: { 
+      movieId: movieId,
+      mediaType: contentType 
+    },
     include: { user: true },
     orderBy: { createdAt: 'desc' }
   });
 
   const watchlistItem = userId
     ? await prisma.watchlistItem.findUnique({
-        where: {
-          userId_movieId: {
-            userId: userId as string,
-            movieId: movieId,
-          },
+      where: {
+        userId_movieId_mediaType: { 
+          userId: userId as string,
+          movieId: movieId,       // <--- AICI E MODIFICAREA: Folosim direct variabila calculată sus!
+          mediaType: contentType,     
         },
-      })
-    : null;
-
+      },
+    })
+  : null;
   const inWatchlist = !!watchlistItem;
 
   return (
@@ -104,7 +108,8 @@ export default async function MoviePage({
             </p>
           ) : (
             <div className="mb-12">
-              <ReviewForm movieId={movie.id} movieTitle={title} />
+              {/* AICI AM MODIFICAT: Trimitem și mediaType către formular */}
+              <ReviewForm movieId={movie.id} movieTitle={title} mediaType={contentType} />
             </div>
           )}
 

@@ -17,44 +17,44 @@ enum Role {
 }
 
 model User {
-  id        String   @id @default(uuid())
-  email     String   @unique
-  username  String   @unique
+  id        String          @id @default(uuid())
+  email     String          @unique
+  username  String          @unique
   avatarUrl String?
-  role      Role     @default(USER) 
-  createdAt DateTime @default(now())
+  role      Role            @default(USER) 
+  createdAt DateTime        @default(now())
   reviews   Review[]
   watchlist WatchlistItem[]
 }
 
-// Adaugă acest model nou jos de tot în fișier
 model WatchlistItem {
   id        String   @id @default(uuid())
   userId    String
   movieId   Int
+  mediaType String   @default("movie")
   createdAt DateTime @default(now())
 
-  // Relațiile cu tabelele existente (ștergerea automată dacă user-ul sau filmul dispar)
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  movie     Movie    @relation(fields: [movieId], references: [id], onDelete: Cascade)
+  movie     Movie    @relation(fields: [movieId, mediaType], references: [id, mediaType], onDelete: Cascade)
 
-  // Un utilizator nu poate adăuga același film de două ori în listă
-  @@unique([userId, movieId])
+  @@unique([userId, movieId, mediaType])
 }
 
-
 model Movie {
-  id          Int      @id @default(autoincrement())
+  id          Int
+  mediaType   String
   title       String
-  mediaType  String
   description String?
   releaseDate DateTime?
   posterUrl   String?
-  watchlist WatchlistItem[]
-
+  
   categoryId  Int
-  category    Category @relation(fields: [categoryId], references: [id])
+  category    Category        @relation(fields: [categoryId], references: [id])
   reviews     Review[]
+  watchlist   WatchlistItem[]
+
+  // Cheia primară compusă
+  @@id([id, mediaType])
 }
 
 model Category {
@@ -71,8 +71,10 @@ model Review {
 
   userId    String
   user      User     @relation(fields: [userId], references: [id])
+  
   movieId   Int
-  movie     Movie    @relation(fields: [movieId], references: [id])
+  mediaType String   @default("movie")
+  movie     Movie    @relation(fields: [movieId, mediaType], references: [id, mediaType])
 
-  @@unique([userId, movieId]) 
+  @@unique([userId, movieId, mediaType]) 
 }
