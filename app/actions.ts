@@ -4,6 +4,27 @@ import { auth, currentUser } from "@clerk/nextjs/server";
 import { prisma } from "../lib/prisma";
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
+import { z } from "zod";
+import { limitReview, limitWatchlist, limitDelete } from "../lib/ratelimit";
+
+const reviewSchema = z.object({
+  movieId: z.coerce.number().int().positive(),
+  mediaType: z.enum(["movie", "tv"]),
+  rating: z.coerce.number().int().min(1).max(10),
+  comment: z.string().max(2000).optional().default(""),
+});
+
+const watchlistSchema = z.object({
+  movieId: z.coerce.number().int().positive(),
+  movieTitle: z.string().min(1).max(500),
+  mediaType: z.enum(["movie", "tv"]),
+});
+
+const deleteReviewSchema = z.object({
+  reviewId: z.coerce.number().int().positive(),
+});
+
+const languageSchema = z.enum(["ro", "en"]);
 
 async function ensureUserExists(userId: string) {
   const userRecord = await prisma.user.findUnique({ where: { id: userId } });
@@ -41,21 +62,21 @@ export async function submitReview(formData: FormData) {
   const { userId } = await auth();
   if (!userId) throw new Error("Neautorizat");
 
+  await limitReview(userId);
   await ensureUserExists(userId);
 
-  const movieIdRaw = formData.get("movieId");
-  const ratingRaw = formData.get("rating");
-  const comment = formData.get("comment") as string;
-  
-  // PRELUĂM TIPUL MEDIA DIN FORMULAR
-  const mediaType = (formData.get("mediaType") as string) || "movie";
+  const parsed = reviewSchema.safeParse({
+    movieId: formData.get("movieId"),
+    mediaType: formData.get("mediaType") || "movie",
+    rating: formData.get("rating"),
+    comment: formData.get("comment") ?? "",
+  });
 
-  const movieId = parseInt(movieIdRaw as string);
-  const rating = parseInt(ratingRaw as string);
+  if (!parsed.success) {
+    throw new Error(parsed.error.issues[0]?.message || "Date invalide");
+  }
 
-  if (isNaN(movieId) || movieId <= 0) throw new Error("ID film invalid");
-  if (isNaN(rating) || rating < 1 || rating > 10) throw new Error("Rating invalid");
-  if (comment && comment.length > 2000) throw new Error("Comentariul este prea lung");
+  const { movieId, mediaType, rating, comment } = parsed.data;
 
   const actualMovieTitle = await fetchMovieTitle(movieId, mediaType);
 
@@ -100,10 +121,16 @@ export async function submitReview(formData: FormData) {
   revalidatePath(`/movie/${movieId}`);
 }
 
-export async function deleteReview(reviewId: number) {
+export async function deleteReview(reviewIdRaw: number) {
   // 1. Verificăm cine este utilizatorul curent logat în Clerk
   const { userId } = await auth();
   if (!userId) throw new Error("Neautorizat");
+
+  await limitDelete(userId);
+
+  const parsed = deleteReviewSchema.safeParse({ reviewId: reviewIdRaw });
+  if (!parsed.success) throw new Error("ID recenzie invalid");
+  const { reviewId } = parsed.data;
 
   // 2. Extragem datele utilizatorului din baza noastră pentru a-i vedea ROLUL
   const currentUserRecord = await prisma.user.findUnique({
@@ -135,9 +162,25 @@ export async function deleteReview(reviewId: number) {
   revalidatePath(`/movie/${review.movieId}`);
 }
 
-export async function toggleWatchlist(movieId: number, movieTitle: string, mediaType: string = "movie") {
+export async function toggleWatchlist(movieIdRaw: number, movieTitleRaw: string, mediaTypeRaw: string = "movie") {
   const { userId } = await auth();
   if (!userId) throw new Error("Neautorizat");
+
+  await limitWatchlist(userId);
+
+  const parsed = watchlistSchema.safeParse({
+    movieId: movieIdRaw,
+    movieTitle: movieTitleRaw,
+    mediaType: mediaTypeRaw,
+  });
+
+  if (!parsed.success) {
+    throw new Error(parsed.error.issues[0]?.message || "Date invalide");
+  }
+
+  const { movieId, movieTitle, mediaType } = parsed.data;
+
+  await ensureUserExists(userId);
 
   // VERIFICARE CU CHEIE COMPUSĂ
   const existingItem = await prisma.watchlistItem.findUnique({
@@ -165,16 +208,26 @@ export async function toggleWatchlist(movieId: number, movieTitle: string, media
       },
     });
 
-    await prisma.watchlistItem.create({
-      data: { userId, movieId, mediaType },
-    });
+    try {
+      await prisma.watchlistItem.create({
+        data: { userId, movieId, mediaType },
+      });
+    } catch (error: unknown) {
+      const code = (error as { code?: string })?.code;
+      if (code !== "P2002") throw error;
+      // Deja existent (cerere dublă/simultană) — ignorăm
+    }
   }
 
   revalidatePath(`/movie/${movieId}`);
   revalidatePath("/watchlist");
 }
 
-export async function changeLanguage(lang: string) {
+export async function changeLanguage(langRaw: string) {
+  const parsed = languageSchema.safeParse(langRaw);
+  if (!parsed.success) throw new Error("Limbă invalidă");
+  const lang = parsed.data;
+
   const cookieStore = await cookies();
   // Salvăm limba în cookie pentru un an
   cookieStore.set("locale", lang, { path: "/", maxAge: 60 * 60 * 24 * 365 });

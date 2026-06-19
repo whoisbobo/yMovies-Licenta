@@ -5,27 +5,40 @@ import { prisma } from "../lib/prisma";
 import Link from "next/link";
 import { cookies } from "next/headers"; // Importăm unalta pentru cookie-uri
 import { dictionary, Locale } from "../lib/dictionary";
+import { homeSearchParamsSchema } from "../lib/validation";
+import { getWithFallback, TTL } from "../lib/tmdbCache";
 
 // Funcția primește acum și limba activă
 async function getMovies(query: string | undefined, genreId: string | undefined, page: number = 1, lang: string = "ro") {
   const tmdbLang = lang === "en" ? "en-US" : "ro-RO"; // Convertim pentru TMDB
-  
+
   let endpoint = `https://api.themoviedb.org/3/movie/popular?api_key=${process.env.TMDB_API_KEY}&language=${tmdbLang}&page=${page}`;
+  let cacheKey = `discover:popular:${page}:${tmdbLang}`;
+  let ttl: number = TTL.POPULAR;
 
   if (query) {
     endpoint = `https://api.themoviedb.org/3/search/multi?api_key=${process.env.TMDB_API_KEY}&language=${tmdbLang}&query=${encodeURIComponent(query)}&page=${page}`;
+    cacheKey = `discover:search:${encodeURIComponent(query)}:${page}:${tmdbLang}`;
+    ttl = TTL.SEARCH;
   } else if (genreId) {
     endpoint = `https://api.themoviedb.org/3/discover/movie?api_key=${process.env.TMDB_API_KEY}&language=${tmdbLang}&with_genres=${encodeURIComponent(genreId)}&page=${page}`;
+    cacheKey = `discover:genre:${genreId}:${page}:${tmdbLang}`;
+    ttl = TTL.GENRE;
   }
 
-  const res = await fetch(endpoint, { cache: 'no-store' });
-  if (!res.ok) return [];
-  const data = await res.json();
+  const results = await getWithFallback(cacheKey, async () => {
+    const res = await fetch(endpoint, { cache: "no-store" });
+    if (!res.ok) throw new Error("TMDB request failed");
+    const data = await res.json();
+    return data.results || [];
+  }, ttl);
+
+  if (!results) return [];
 
   if (query) {
-    return (data.results || []).filter((item: any) => item.media_type !== 'person');
+    return results.filter((item: any) => item.media_type !== "person");
   }
-  return data.results || [];
+  return results;
 }
 
 export default async function Home({
@@ -61,10 +74,11 @@ export default async function Home({
   const t = dictionary[lang];
 
   const resolvedSearchParams = await searchParams;
-  const query = resolvedSearchParams.search;
-  const genreId = resolvedSearchParams.genre;
-  const genreName = resolvedSearchParams.name;
-  const currentPage = parseInt(resolvedSearchParams.page || "1", 10);
+  const parsedParams = homeSearchParamsSchema.parse(resolvedSearchParams);
+  const query = parsedParams.search;
+  const genreId = parsedParams.genre ? String(parsedParams.genre) : undefined;
+  const genreName = parsedParams.name;
+  const currentPage = parsedParams.page;
 
   // Trimitem limba extrasă din cookie către funcția de fetch
   const movies = await getMovies(query, genreId, currentPage, lang);

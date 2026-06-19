@@ -57,6 +57,12 @@ model Movie {
   @@id([id, mediaType])
 }
 
+model PageCache {
+  key       String   @id
+  data      Json
+  updatedAt DateTime @updatedAt
+}
+
 model Category {
   id     Int     @id @default(autoincrement())
   name   String  @unique

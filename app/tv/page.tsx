@@ -3,16 +3,24 @@
 import Link from "next/link";
 import { cookies } from "next/headers";
 import { dictionary, Locale } from "../../lib/dictionary";
+import { pageParamSchema } from "../../lib/validation";
+import { getWithFallback, TTL } from "../../lib/tmdbCache";
 
 async function getPopularTVShows(page: number = 1, lang: string = "ro") {
   const tmdbLang = lang === "en" ? "en-US" : "ro-RO";
-  const res = await fetch(
-    `https://api.themoviedb.org/3/tv/popular?api_key=${process.env.TMDB_API_KEY}&language=${tmdbLang}&page=${page}`,
-    { cache: 'no-store' }
-  );
-  if (!res.ok) return [];
-  const data = await res.json();
-  return data.results || [];
+  const cacheKey = `discover:tv-popular:${page}:${tmdbLang}`;
+
+  const results = await getWithFallback(cacheKey, async () => {
+    const res = await fetch(
+      `https://api.themoviedb.org/3/tv/popular?api_key=${process.env.TMDB_API_KEY}&language=${tmdbLang}&page=${page}`,
+      { cache: "no-store" }
+    );
+    if (!res.ok) throw new Error("TMDB request failed");
+    const data = await res.json();
+    return data.results || [];
+  }, TTL.POPULAR);
+
+  return results || [];
 }
 
 export default async function TvPage({
@@ -25,7 +33,7 @@ export default async function TvPage({
   const t = dictionary[lang];
 
   const resolvedSearchParams = await searchParams;
-  const currentPage = parseInt(resolvedSearchParams.page || "1", 10);
+  const currentPage = pageParamSchema.parse(resolvedSearchParams.page);
   const tvShows = await getPopularTVShows(currentPage, lang);
 
   return (

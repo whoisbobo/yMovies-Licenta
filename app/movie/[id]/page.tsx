@@ -6,16 +6,14 @@ import { prisma } from "../../../lib/prisma";
 import DeleteButton from "./DeleteButton";
 import WatchlistButton from "./WatchlistButton";
 import { cookies } from "next/headers";
+import { movieIdParamSchema, mediaTypeParamSchema } from "../../../lib/validation";
+import { notFound } from "next/navigation";
+import { getCachedMovieDetails } from "../../../lib/tmdbCache";
 
-async function getMovieDetails(id: string, type: string, lang: string = "ro") {
+async function getMovieDetails(id: number, type: string, lang: string = "ro") {
   const endpointType = type === "tv" ? "tv" : "movie";
   const tmdbLang = lang === "en" ? "en-US" : "ro-RO";
-  const res = await fetch(
-    `https://api.themoviedb.org/3/${endpointType}/${id}?api_key=${process.env.TMDB_API_KEY}&language=${tmdbLang}`,
-    { cache: 'no-store' }
-  );
-  if (!res.ok) return null;
-  return res.json();
+  return getCachedMovieDetails(id, endpointType, tmdbLang);
 }
 
 export default async function MoviePage({
@@ -28,14 +26,16 @@ export default async function MoviePage({
   const resolvedParams = await params;
   const resolvedSearchParams = await searchParams;
 
-  const movieId = parseInt(resolvedParams.id);
-  const contentType = resolvedSearchParams.type || "movie";
+  const parsedMovieId = movieIdParamSchema.safeParse(resolvedParams.id);
+  if (!parsedMovieId.success) notFound();
+  const movieId = parsedMovieId.data;
+  const contentType = mediaTypeParamSchema.parse(resolvedSearchParams.type);
 
   // Citim limba din cookie
   const cookieStore = await cookies();
   const lang = cookieStore.get("locale")?.value || "ro";
 
-  const movie = await getMovieDetails(resolvedParams.id, contentType, lang);
+  const movie: any = await getMovieDetails(movieId, contentType, lang);
   const { userId } = await auth();
 
   if (!movie) {
