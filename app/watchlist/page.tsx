@@ -5,6 +5,7 @@ import { prisma } from "../../lib/prisma";
 import Link from "next/link";
 import { getTranslations, getLocale } from "next-intl/server";
 import { toTmdbLang } from "../../lib/locale";
+import { getCachedMovieDetails } from "../../lib/tmdbCache";
 
 async function getWatchlistItems(userId: string) {
   const items = await prisma.watchlistItem.findMany({
@@ -41,19 +42,14 @@ export default async function WatchlistPage() {
         const tmdbLang = toTmdbLang(lang);
         
         // 2. Luăm tipul corect (movie sau tv) salvat anterior în Prisma
-        const mediaType = item.movie?.mediaType || "movie"; 
-        
-        // 3. Facem cererea precisă către TMDB
-        const res = await fetch(
-          `https://api.themoviedb.org/3/${mediaType}/${item.movieId}?api_key=${process.env.TMDB_API_KEY}&language=${tmdbLang}`,
-          { cache: "no-store" }
-        );
-        
-        // 4. Dacă TMDB dă eroare (filmul nu mai există / e fantomă), ignorăm elementul
-        if (!res.ok) return null;
-        
-        const data = await res.json();
-        
+        const mediaType = item.movie?.mediaType || "movie";
+
+        // 3. Folosim cache-ul permanent (poster_path deja corectat, cu fallback pe en-US)
+        const data: any = await getCachedMovieDetails(item.movieId, mediaType, tmdbLang);
+
+        // 4. Dacă filmul nu mai există / e fantomă, ignorăm elementul
+        if (!data) return null;
+
         // 5. Returnăm datele complete, asigurându-ne că forțăm tipul media corect
         return { ...data, media_type: mediaType };
       } catch {

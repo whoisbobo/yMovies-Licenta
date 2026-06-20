@@ -17,6 +17,13 @@ async function getMovieDetails(id: number, type: string, lang: string = "ro") {
   return getCachedMovieDetails(id, endpointType, tmdbLang);
 }
 
+function formatDuration(minutes: number | undefined, t: (key: string, values?: Record<string, number>) => string): string | null {
+  if (!minutes || minutes <= 0) return null;
+  const hours = Math.floor(minutes / 60);
+  const mins = minutes % 60;
+  return hours > 0 ? t("durationHM", { h: hours, m: mins }) : t("durationM", { m: mins });
+}
+
 export default async function MoviePage({
   params,
   searchParams
@@ -44,6 +51,8 @@ export default async function MoviePage({
 
   const title = movie.title || movie.name;
   const releaseDate = movie.release_date || movie.first_air_date;
+  const runtimeMinutes = contentType === "tv" ? movie.episode_run_time?.[0] : movie.runtime;
+  const durationLabel = formatDuration(runtimeMinutes, t);
   const dbUser = userId ? await prisma.user.findUnique({ where: { id: userId } }) : null;
 
   // AICI AM MODIFICAT: Acum filtrăm recenziile folosind și tipul media!
@@ -81,6 +90,7 @@ export default async function MoviePage({
         <div className="flex gap-4 items-center mb-6 text-zinc-400 font-medium">
           <span className="bg-yellow-500 text-zinc-900 px-3 py-1 rounded font-bold">★ {movie.vote_average?.toFixed(1) || "0.0"}</span>
           <span>{releaseDate?.substring(0, 4)}</span>
+          {durationLabel && <span>{durationLabel}</span>}
           <span className="flex gap-2">{movie.genres?.map((g: any) => g.name).join(", ")}</span>
         </div>
 

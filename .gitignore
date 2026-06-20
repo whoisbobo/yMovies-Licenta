@@ -44,3 +44,8 @@ next-env.d.ts
 
 # clerk configuration (can include secrets)
 /.clerk/
+
+# Stripe CLI local webhook forwarding (dev-only)
+stripe-listen.pid
+stripe-listen-out.log
+stripe-listen-err.log

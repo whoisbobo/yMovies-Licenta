@@ -11,6 +11,9 @@
     "tv": "Diziler",
     "categories": "Kategoriler",
     "myList": "Listem",
+    "myReviews": "Yorumlarım",
+    "recommendations": "Öneriler",
+    "premium": "Premium",
     "searchPlaceholder": "Bir film ara...",
     "login": "Giriş Yap",
     "register": "Kayıt Ol",
@@ -34,7 +37,9 @@
     "mustLogin": "Yorum yapmak için yukarıdaki düğmeyi kullanarak giriş yapmalısınız.",
     "userOpinions": "Kullanıcı Yorumları ({count})",
     "noReviews": "Henüz yorum yok. İlk yorumu sen yap!",
-    "noDescription": "Bu içeriğin henüz Türkçe açıklaması yok."
+    "noDescription": "Bu içeriğin henüz Türkçe açıklaması yok.",
+    "durationHM": "{h}s {m}dk",
+    "durationM": "{m}dk"
   },
   "Watchlist": {
     "mustBeLoggedIn": "İzleme listenizi görmek için giriş yapmalısınız.",
@@ -62,5 +67,34 @@
     "confirmDelete": "Bu yorumu silmek istediğinizden eminmisiniz?",
     "deleteLabel": "Sil",
     "errorDelete": "Yorum silinemedi."
+  },
+  "Premium": {
+    "title": "yMovies Premium",
+    "subtitle": "Zevkinize göre tam kişiselleştirilmiş öneriler",
+    "price": "Ayda $1.99",
+    "feature1": "Tüm favori türlerinize dayalı sınırsız öneri",
+    "feature2": "Güncellenmiş önerilere öncelikli erişim",
+    "feature3": "Platformun gelişimini destekleyin",
+    "ctaSubscribe": "Şimdi abone ol",
+    "ctaManage": "Aboneliği yönet",
+    "alreadyPremium": "Zaten Premium abonesisiniz. Desteğiniz için teşekkürler!",
+    "mustLogin": "Abone olmak için giriş yapmalısınız.",
+    "successMessage": "Aboneliğiniz başarıyla etkinleştirildi! Premium'a hoş geldiniz.",
+    "canceledMessage": "Ödeme iptal edildi. İstediğiniz zaman tekrar deneyebilirsiniz."
+  },
+  "Recommendations": {
+    "title": "Sizin için öneriler",
+    "subtitle": "Yorumlarınıza göre, eşleşen türler: {genres}",
+    "noData": "Kişiselleştirilmiş öneriler için henüz yeterli yorumunuz yok. Başlamak için birkaç filmi değerlendirin!",
+    "mustLogin": "Kişiselleştirilmiş önerileri görmek için giriş yapmalısınız.",
+    "freeLimitNotice": "Sadece {count} ücretsiz öneri görüyorsunuz. Tam liste için Premium'a abone olun.",
+    "upgradeButton": "Tüm önerileri gör (Premium)",
+    "matchedGenre": "Şunun için önerildi: {genre}"
+  },
+  "MyReviews": {
+    "title": "Yorumlarım ({count})",
+    "mustLogin": "Yorumlarını görmek için giriş yapmalısın.",
+    "empty": "Henüz hiç yorum yapmadın.",
+    "unknownTitle": "Bilinmeyen başlık"
   }
 }

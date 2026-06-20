@@ -11,6 +11,9 @@
     "tv": "Seriale",
     "categories": "Categorii",
     "myList": "Lista Mea",
+    "myReviews": "Recenziile Mele",
+    "recommendations": "Recomandări",
+    "premium": "Premium",
     "searchPlaceholder": "Caută un film...",
     "login": "Autentificare",
     "register": "Cont Nou",
@@ -34,7 +37,9 @@
     "mustLogin": "Trebuie să te autentifici folosind butonul de sus pentru a lăsa o recenzie.",
     "userOpinions": "Păreri de la utilizatori ({count})",
     "noReviews": "Nu există nicio recenzie. Fii primul care lasă una!",
-    "noDescription": "Acest conținut nu are încă o descriere în limba română."
+    "noDescription": "Acest conținut nu are încă o descriere în limba română.",
+    "durationHM": "{h}h {m}min",
+    "durationM": "{m}min"
   },
   "Watchlist": {
     "mustBeLoggedIn": "Trebuie să fii autentificat pentru a-ți vedea lista de vizionare.",
@@ -62,5 +67,34 @@
     "confirmDelete": "Sigur vrei să ștergi această recenzie?",
     "deleteLabel": "Șterge",
     "errorDelete": "Nu s-a putut șterge recenzia."
+  },
+  "Premium": {
+    "title": "yMovies Premium",
+    "subtitle": "Recomandări personalizate complete, bazate pe gusturile tale",
+    "price": "9,99 RON / lună",
+    "feature1": "Recomandări nelimitate, pe baza tuturor genurilor tale preferate",
+    "feature2": "Acces prioritar la recomandări actualizate",
+    "feature3": "Susții dezvoltarea continuă a platformei",
+    "ctaSubscribe": "Abonează-te acum",
+    "ctaManage": "Gestionează abonamentul",
+    "alreadyPremium": "Ești deja abonat Premium. Mulțumim pentru susținere!",
+    "mustLogin": "Trebuie să te autentifici pentru a te abona.",
+    "successMessage": "Abonamentul a fost activat cu succes! Bine ai venit la Premium.",
+    "canceledMessage": "Plata a fost anulată. Poți reîncerca oricând."
+  },
+  "Recommendations": {
+    "title": "Recomandări pentru tine",
+    "subtitle": "Pe baza recenziilor tale, bazate pe genurile: {genres}",
+    "noData": "Nu ai încă suficiente recenzii pentru recomandări personalizate. Recenzează câteva filme ca să începem!",
+    "mustLogin": "Trebuie să te autentifici pentru a vedea recomandări personalizate.",
+    "freeLimitNotice": "Vezi doar {count} recomandări gratuite. Abonează-te la Premium pentru lista completă.",
+    "upgradeButton": "Vezi toate recomandările (Premium)",
+    "matchedGenre": "Recomandat pentru: {genre}"
+  },
+  "MyReviews": {
+    "title": "Recenziile mele ({count})",
+    "mustLogin": "Trebuie să te autentifici pentru a-ți vedea recenziile.",
+    "empty": "Nu ai lăsat încă nicio recenzie.",
+    "unknownTitle": "Titlu necunoscut"
   }
 }

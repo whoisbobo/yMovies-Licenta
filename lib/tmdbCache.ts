@@ -10,6 +10,47 @@ function isCompleteMovieData(data: unknown): data is JsonRecord {
 }
 
 /**
+ * TMDB are instabilități intermitente la serviciul lor de traducere pentru anumite
+ * limbi (502 "Couldn't connect to the backend server"), aleatorii și nelegate de
+ * cheia noastră — en-US e mereu stabil pentru că nu trece prin acel serviciu.
+ * Reîncercăm cu en-US ca fallback, ca utilizatorul să vadă conținut (în engleză)
+ * în loc de o pagină goală când limba localizată e indisponibilă temporar.
+ */
+export async function fetchTmdbWithFallback(pathAndQuery: string, lang: string): Promise<Response> {
+  const url = `https://api.themoviedb.org/3${pathAndQuery}&language=${encodeURIComponent(lang)}`;
+  const res = await fetch(url, { cache: "no-store" });
+  if (res.ok || lang === "en-US") return res;
+
+  const fallbackUrl = `https://api.themoviedb.org/3${pathAndQuery}&language=en-US`;
+  return fetch(fallbackUrl, { cache: "no-store" });
+}
+
+/**
+ * TMDB nu ține postere în română aproape niciodată — câmpul poster_path din
+ * /movie/{id} poate reveni la orice poster are cel mai mare scor intern,
+ * inclusiv unul cu text într-o limbă complet aleatorie (ex. rusă). Cerem explicit
+ * un poster fără text localizat-greșit: în engleză sau fără text deloc (textless).
+ */
+async function getSafePosterPath(
+  movieId: number,
+  mediaType: "movie" | "tv",
+  fallback: string | null
+): Promise<string | null> {
+  try {
+    const res = await fetch(
+      `https://api.themoviedb.org/3/${mediaType}/${movieId}/images?api_key=${process.env.TMDB_API_KEY}&include_image_language=en,null`,
+      { cache: "no-store" }
+    );
+    if (!res.ok) return fallback;
+    const data = await res.json();
+    const posters = (data.posters || []) as { file_path: string }[];
+    return posters[0]?.file_path ?? fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+/**
  * Cache permanent (cache-aside) pentru pagina de detaliu a unui film/serial.
  * Odată ce avem date complete de la TMDB, nu mai re-fetch-uim niciodată.
  */
@@ -27,12 +68,13 @@ export async function getCachedMovieDetails(
   }
 
   try {
-    const res = await fetch(
-      `https://api.themoviedb.org/3/${mediaType}/${movieId}?api_key=${process.env.TMDB_API_KEY}&language=${encodeURIComponent(lang)}`,
-      { cache: "no-store" }
+    const res = await fetchTmdbWithFallback(
+      `/${mediaType}/${movieId}?api_key=${process.env.TMDB_API_KEY}`,
+      lang
     );
     if (!res.ok) return cachedData ?? null;
     const data = await res.json();
+    data.poster_path = await getSafePosterPath(movieId, mediaType, data.poster_path ?? null);
 
     await prisma.pageCache.upsert({
       where: { key },

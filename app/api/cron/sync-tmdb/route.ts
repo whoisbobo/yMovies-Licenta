@@ -31,11 +31,11 @@ export async function GET(request: Request) {
     const jobs: { key: string; endpoint: string }[] = [
       {
         key: `discover:popular:1:${tmdbLang}`,
-        endpoint: `https://api.themoviedb.org/3/movie/popular?api_key=${process.env.TMDB_API_KEY}&language=${tmdbLang}&page=1`,
+        endpoint: `https://api.themoviedb.org/3/discover/movie?api_key=${process.env.TMDB_API_KEY}&language=${tmdbLang}&sort_by=popularity.desc&vote_count.gte=200&page=1`,
       },
       {
         key: `discover:tv-popular:1:${tmdbLang}`,
-        endpoint: `https://api.themoviedb.org/3/tv/popular?api_key=${process.env.TMDB_API_KEY}&language=${tmdbLang}&page=1`,
+        endpoint: `https://api.themoviedb.org/3/discover/tv?api_key=${process.env.TMDB_API_KEY}&language=${tmdbLang}&sort_by=popularity.desc&vote_count.gte=200&page=1`,
       },
     ];
 

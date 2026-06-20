@@ -5,7 +5,7 @@ import { toTmdbLang } from "../../lib/locale";
 async function getGenres(lang: string = "ro") {
   // Convertim limba selectată pentru API-ul TMDB
   const tmdbLang = toTmdbLang(lang);
-  
+
   const res = await fetch(
     `https://api.themoviedb.org/3/genre/movie/list?api_key=${process.env.TMDB_API_KEY}&language=${tmdbLang}`,
     { cache: "no-store" }
@@ -35,7 +35,7 @@ export default async function CategoriesPage() {
       <h2 className="text-2xl font-semibold mb-6 border-l-4 border-yellow-500 pl-3">
         {t("title")}
       </h2>
-      
+
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
         {genres.map((genre: { id: number; name: string }, index: number) => {
           const gradient = gradients[index % gradients.length];

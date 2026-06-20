@@ -3,10 +3,12 @@
 import { auth, currentUser } from "@clerk/nextjs/server";
 import { prisma } from "../lib/prisma";
 import { revalidatePath } from "next/cache";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
+import { redirect } from "next/navigation";
 import { z } from "zod";
-import { limitReview, limitWatchlist, limitDelete } from "../lib/ratelimit";
+import { limitReview, limitWatchlist, limitDelete, limitCheckout } from "../lib/ratelimit";
 import { SUPPORTED_LOCALES } from "../lib/locale";
+import { getStripe } from "../lib/stripe";
 
 const reviewSchema = z.object({
   movieId: z.coerce.number().int().positive(),
@@ -145,6 +147,7 @@ export async function deleteReview(reviewIdRaw: number) {
 
   // 6. Refresh automat la pagină
   revalidatePath(`/movie/${review.movieId}`);
+  revalidatePath("/reviews");
 }
 
 export async function toggleWatchlist(movieIdRaw: number, movieTitleRaw: string, mediaTypeRaw: string = "movie") {
@@ -199,6 +202,73 @@ export async function toggleWatchlist(movieIdRaw: number, movieTitleRaw: string,
 
   revalidatePath(`/movie/${movieId}`);
   revalidatePath("/watchlist");
+}
+
+async function getOrigin(): Promise<string> {
+  const headersList = await headers();
+  const host = headersList.get("host");
+  const protocol = host?.startsWith("localhost") ? "http" : "https";
+  return `${protocol}://${host}`;
+}
+
+export async function createCheckoutSession() {
+  const { userId } = await auth();
+  if (!userId) throw new Error("Neautorizat");
+
+  await limitCheckout(userId);
+  await ensureUserExists(userId);
+  const dbUser = await prisma.user.findUnique({ where: { id: userId } });
+  if (!dbUser) throw new Error("Utilizator inexistent");
+
+  if (dbUser.isPremium) {
+    throw new Error("Ai deja abonamentul Premium activ");
+  }
+
+  const stripe = getStripe();
+  const origin = await getOrigin();
+
+  let customerId = dbUser.stripeCustomerId;
+  if (!customerId) {
+    const customer = await stripe.customers.create({
+      email: dbUser.email,
+      metadata: { userId },
+    });
+    customerId = customer.id;
+    await prisma.user.update({ where: { id: userId }, data: { stripeCustomerId: customerId } });
+  }
+
+  const session = await stripe.checkout.sessions.create({
+    mode: "subscription",
+    customer: customerId,
+    line_items: [{ price: process.env.STRIPE_PRICE_ID, quantity: 1 }],
+    success_url: `${origin}/premium?success=true`,
+    cancel_url: `${origin}/premium?canceled=true`,
+    metadata: { userId },
+  });
+
+  if (!session.url) throw new Error("Nu s-a putut crea sesiunea de checkout");
+
+  redirect(session.url);
+}
+
+export async function createBillingPortalSession() {
+  const { userId } = await auth();
+  if (!userId) throw new Error("Neautorizat");
+
+  await limitCheckout(userId);
+
+  const dbUser = await prisma.user.findUnique({ where: { id: userId } });
+  if (!dbUser?.stripeCustomerId) throw new Error("Nu ai un abonament activ");
+
+  const stripe = getStripe();
+  const origin = await getOrigin();
+
+  const session = await stripe.billingPortal.sessions.create({
+    customer: dbUser.stripeCustomerId,
+    return_url: `${origin}/premium`,
+  });
+
+  redirect(session.url);
 }
 
 export async function changeLanguage(langRaw: string) {

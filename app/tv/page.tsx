@@ -3,17 +3,20 @@
 import Link from "next/link";
 import { getTranslations, getLocale } from "next-intl/server";
 import { pageParamSchema } from "../../lib/validation";
-import { getWithFallback, TTL } from "../../lib/tmdbCache";
+import { getWithFallback, fetchTmdbWithFallback, TTL } from "../../lib/tmdbCache";
 import { toTmdbLang } from "../../lib/locale";
+import Pagination from "../../components/Pagination";
 
 async function getPopularTVShows(page: number = 1, lang: string = "ro") {
   const tmdbLang = toTmdbLang(lang);
   const cacheKey = `discover:tv-popular:${page}:${tmdbLang}`;
 
+  // discover/tv + vote_count.gte, nu /tv/popular — la fel ca la filme, evităm
+  // seriale obscure cu foarte puține voturi care apar temporar "populare".
   const results = await getWithFallback(cacheKey, async () => {
-    const res = await fetch(
-      `https://api.themoviedb.org/3/tv/popular?api_key=${process.env.TMDB_API_KEY}&language=${tmdbLang}&page=${page}`,
-      { cache: "no-store" }
+    const res = await fetchTmdbWithFallback(
+      `/discover/tv?api_key=${process.env.TMDB_API_KEY}&sort_by=popularity.desc&vote_count.gte=200&page=${page}`,
+      tmdbLang
     );
     if (!res.ok) throw new Error("TMDB request failed");
     const data = await res.json();
@@ -64,25 +67,13 @@ export default async function TvPage({
         ))}
       </div>
 
-      <div className="flex justify-center items-center gap-6 mt-12 mb-8">
-        {currentPage > 1 ? (
-          <Link href={`/tv?page=${currentPage - 1}`} className="bg-zinc-800 hover:bg-zinc-700 text-white px-6 py-2 rounded-lg font-medium transition-colors">
-            &larr; {tCommon("previousPage")}
-          </Link>
-        ) : (
-          <div className="px-6 py-2 rounded-lg font-medium bg-zinc-900 text-zinc-600 cursor-not-allowed">
-            &larr; {tCommon("previousPage")}
-          </div>
-        )}
-
-        <span className="text-yellow-500 font-bold bg-zinc-900/50 px-4 py-2 rounded-lg border border-yellow-500/20">
-          {tCommon("page")} {currentPage}
-        </span>
-
-        <Link href={`/tv?page=${currentPage + 1}`} className="bg-zinc-800 hover:bg-zinc-700 text-white px-6 py-2 rounded-lg font-medium transition-colors">
-          {tCommon("nextPage")} &rarr;
-        </Link>
-      </div>
+      <Pagination
+        currentPage={currentPage}
+        buildPageLink={(page) => `/tv?page=${page}`}
+        previousLabel={tCommon("previousPage")}
+        nextLabel={tCommon("nextPage")}
+        pageLabel={tCommon("page")}
+      />
     </main>
   );
 }

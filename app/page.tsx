@@ -5,40 +5,90 @@ import { prisma } from "../lib/prisma";
 import Link from "next/link";
 import { getTranslations, getLocale } from "next-intl/server";
 import { homeSearchParamsSchema } from "../lib/validation";
-import { getWithFallback, TTL } from "../lib/tmdbCache";
+import { getWithFallback, fetchTmdbWithFallback, TTL } from "../lib/tmdbCache";
 import { toTmdbLang } from "../lib/locale";
+import Pagination from "../components/Pagination";
+
+// TMDB ține taxonomii de genuri separate pentru filme și seriale (id-uri diferite,
+// unele genuri neavând echivalent direct). Maparea de mai jos permite ca o categorie
+// din pagina /categories (construită din genurile de filme) să includă și serialele
+// din genul TV corespunzător, ca să nu mai fie filtrate complet din rezultate.
+const MOVIE_TO_TV_GENRE: Record<string, number> = {
+  "28": 10759,   // Action -> Action & Adventure
+  "12": 10759,   // Adventure -> Action & Adventure
+  "16": 16,      // Animation
+  "35": 35,      // Comedy
+  "80": 80,      // Crime
+  "99": 99,      // Documentary
+  "18": 18,      // Drama
+  "10751": 10751, // Family
+  "14": 10765,   // Fantasy -> Sci-Fi & Fantasy
+  "878": 10765,  // Science Fiction -> Sci-Fi & Fantasy
+  "9648": 9648,  // Mystery
+  "10752": 10768, // War -> War & Politics
+  "37": 37,      // Western
+};
 
 // Funcția primește acum și limba activă
 async function getMovies(query: string | undefined, genreId: string | undefined, page: number = 1, lang: string = "ro") {
   const tmdbLang = toTmdbLang(lang); // Convertim pentru TMDB
 
-  let endpoint = `https://api.themoviedb.org/3/movie/popular?api_key=${process.env.TMDB_API_KEY}&language=${tmdbLang}&page=${page}`;
-  let cacheKey = `discover:popular:${page}:${tmdbLang}`;
-  let ttl: number = TTL.POPULAR;
-
   if (query) {
-    endpoint = `https://api.themoviedb.org/3/search/multi?api_key=${process.env.TMDB_API_KEY}&language=${tmdbLang}&query=${encodeURIComponent(query)}&page=${page}`;
-    cacheKey = `discover:search:${encodeURIComponent(query)}:${page}:${tmdbLang}`;
-    ttl = TTL.SEARCH;
-  } else if (genreId) {
-    endpoint = `https://api.themoviedb.org/3/discover/movie?api_key=${process.env.TMDB_API_KEY}&language=${tmdbLang}&with_genres=${encodeURIComponent(genreId)}&page=${page}`;
-    cacheKey = `discover:genre:${genreId}:${page}:${tmdbLang}`;
-    ttl = TTL.GENRE;
+    const cacheKey = `discover:search:${encodeURIComponent(query)}:${page}:${tmdbLang}`;
+    const results = await getWithFallback(cacheKey, async () => {
+      const res = await fetchTmdbWithFallback(
+        `/search/multi?api_key=${process.env.TMDB_API_KEY}&query=${encodeURIComponent(query)}&page=${page}`,
+        tmdbLang
+      );
+      if (!res.ok) throw new Error("TMDB request failed");
+      const data = await res.json();
+      return (data.results || []).filter((item: any) => item.media_type !== "person");
+    }, TTL.SEARCH);
+    return results || [];
   }
 
+  if (genreId) {
+    const tvGenreId = MOVIE_TO_TV_GENRE[genreId];
+    const cacheKey = `discover:genre:${genreId}:${page}:${tmdbLang}`;
+    const results = await getWithFallback(cacheKey, async () => {
+      const movieRes = await fetchTmdbWithFallback(
+        `/discover/movie?api_key=${process.env.TMDB_API_KEY}&with_genres=${encodeURIComponent(genreId)}&sort_by=popularity.desc&vote_count.gte=200&page=${page}`,
+        tmdbLang
+      );
+      const movieData = movieRes.ok ? await movieRes.json() : { results: [] };
+      const movies = (movieData.results || []).map((m: any) => ({ ...m, media_type: "movie" }));
+
+      let shows: any[] = [];
+      if (tvGenreId) {
+        const tvRes = await fetchTmdbWithFallback(
+          `/discover/tv?api_key=${process.env.TMDB_API_KEY}&with_genres=${tvGenreId}&sort_by=popularity.desc&vote_count.gte=200&page=${page}`,
+          tmdbLang
+        );
+        if (tvRes.ok) {
+          const tvData = await tvRes.json();
+          shows = (tvData.results || []).map((s: any) => ({ ...s, media_type: "tv" }));
+        }
+      }
+
+      return [...movies, ...shows].sort((a, b) => (b.popularity ?? 0) - (a.popularity ?? 0));
+    }, TTL.GENRE);
+    return results || [];
+  }
+
+  // Folosim discover (nu /movie/popular) ca să putem impune un minim de voturi —
+  // /movie/popular se bazează pe un scor de activitate recentă și poate scoate
+  // în prim-plan filme obscure cu doar 5-20 voturi care au avut un vârf temporar.
+  const cacheKey = `discover:popular:${page}:${tmdbLang}`;
   const results = await getWithFallback(cacheKey, async () => {
-    const res = await fetch(endpoint, { cache: "no-store" });
+    const res = await fetchTmdbWithFallback(
+      `/discover/movie?api_key=${process.env.TMDB_API_KEY}&sort_by=popularity.desc&vote_count.gte=200&page=${page}`,
+      tmdbLang
+    );
     if (!res.ok) throw new Error("TMDB request failed");
     const data = await res.json();
     return data.results || [];
-  }, ttl);
-
-  if (!results) return [];
-
-  if (query) {
-    return results.filter((item: any) => item.media_type !== "person");
-  }
-  return results;
+  }, TTL.POPULAR);
+  return results || [];
 }
 
 export default async function Home({
@@ -138,25 +188,13 @@ export default async function Home({
             })}
           </div>
 
-          <div className="flex justify-center items-center gap-6 mt-12 mb-8">
-            {currentPage > 1 ? (
-              <Link href={buildPageLink(currentPage - 1)} className="bg-zinc-800 hover:bg-zinc-700 text-white px-6 py-2 rounded-lg font-medium transition-colors">
-                &larr; {tCommon("previousPage")}
-              </Link>
-            ) : (
-              <div className="px-6 py-2 rounded-lg font-medium bg-zinc-900 text-zinc-600 cursor-not-allowed">
-                &larr; {tCommon("previousPage")}
-              </div>
-            )}
-
-            <span className="text-yellow-500 font-bold bg-zinc-900/50 px-4 py-2 rounded-lg border border-yellow-500/20">
-              {tCommon("page")} {currentPage}
-            </span>
-
-            <Link href={buildPageLink(currentPage + 1)} className="bg-zinc-800 hover:bg-zinc-700 text-white px-6 py-2 rounded-lg font-medium transition-colors">
-              {tCommon("nextPage")} &rarr;
-            </Link>
-          </div>
+          <Pagination
+            currentPage={currentPage}
+            buildPageLink={buildPageLink}
+            previousLabel={tCommon("previousPage")}
+            nextLabel={tCommon("nextPage")}
+            pageLabel={tCommon("page")}
+          />
         </>
       )}
     </main>

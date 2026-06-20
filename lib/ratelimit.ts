@@ -18,6 +18,8 @@ function makeLimiter(requests: number, window: `${number} ${"s" | "m" | "h"}`) {
 const reviewLimiter = makeLimiter(5, "1 m");
 const watchlistLimiter = makeLimiter(20, "1 m");
 const deleteLimiter = makeLimiter(10, "1 m");
+// Mai restrictiv: fiecare apel creează un Customer/Checkout Session la Stripe
+const checkoutLimiter = makeLimiter(5, "1 m");
 
 async function enforce(
   limiter: Ratelimit | null,
@@ -35,3 +37,4 @@ async function enforce(
 export const limitReview = (userId: string) => enforce(reviewLimiter, userId, "review");
 export const limitWatchlist = (userId: string) => enforce(watchlistLimiter, userId, "watchlist");
 export const limitDelete = (userId: string) => enforce(deleteLimiter, userId, "delete");
+export const limitCheckout = (userId: string) => enforce(checkoutLimiter, userId, "checkout");

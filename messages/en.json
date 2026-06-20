@@ -11,6 +11,9 @@
     "tv": "TV Shows",
     "categories": "Categories",
     "myList": "My List",
+    "myReviews": "My Reviews",
+    "recommendations": "Recommendations",
+    "premium": "Premium",
     "searchPlaceholder": "Search for a movie...",
     "login": "Sign In",
     "register": "Sign Up",
@@ -34,7 +37,9 @@
     "mustLogin": "You must log in using the button above to leave a review.",
     "userOpinions": "User Opinions ({count})",
     "noReviews": "There are no reviews. Be the first to leave one!",
-    "noDescription": "This content does not have an English description yet."
+    "noDescription": "This content does not have an English description yet.",
+    "durationHM": "{h}h {m}min",
+    "durationM": "{m}min"
   },
   "Watchlist": {
     "mustBeLoggedIn": "You must be logged in to view your watchlist.",
@@ -62,5 +67,34 @@
     "confirmDelete": "Are you sure you want to delete this review?",
     "deleteLabel": "Delete",
     "errorDelete": "The review could not be deleted."
+  },
+  "Premium": {
+    "title": "yMovies Premium",
+    "subtitle": "Full personalized recommendations, based on your taste",
+    "price": "$1.99 / month",
+    "feature1": "Unlimited recommendations, based on all your favorite genres",
+    "feature2": "Priority access to updated recommendations",
+    "feature3": "Support the continued development of the platform",
+    "ctaSubscribe": "Subscribe now",
+    "ctaManage": "Manage subscription",
+    "alreadyPremium": "You're already a Premium subscriber. Thank you for your support!",
+    "mustLogin": "You must log in to subscribe.",
+    "successMessage": "Your subscription was activated successfully! Welcome to Premium.",
+    "canceledMessage": "The payment was canceled. You can try again anytime."
+  },
+  "Recommendations": {
+    "title": "Recommendations for you",
+    "subtitle": "Based on your reviews, matching genres: {genres}",
+    "noData": "You don't have enough reviews yet for personalized recommendations. Review a few movies to get started!",
+    "mustLogin": "You must log in to see personalized recommendations.",
+    "freeLimitNotice": "You're seeing only {count} free recommendations. Subscribe to Premium for the full list.",
+    "upgradeButton": "See all recommendations (Premium)",
+    "matchedGenre": "Recommended for: {genre}"
+  },
+  "MyReviews": {
+    "title": "My Reviews ({count})",
+    "mustLogin": "You must log in to see your reviews.",
+    "empty": "You haven't left any reviews yet.",
+    "unknownTitle": "Unknown title"
   }
 }
