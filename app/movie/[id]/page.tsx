@@ -5,14 +5,15 @@ import ReviewForm from "./ReviewForm";
 import { prisma } from "../../../lib/prisma";
 import DeleteButton from "./DeleteButton";
 import WatchlistButton from "./WatchlistButton";
-import { cookies } from "next/headers";
+import { getTranslations, getLocale } from "next-intl/server";
 import { movieIdParamSchema, mediaTypeParamSchema } from "../../../lib/validation";
 import { notFound } from "next/navigation";
 import { getCachedMovieDetails } from "../../../lib/tmdbCache";
+import { toTmdbLang } from "../../../lib/locale";
 
 async function getMovieDetails(id: number, type: string, lang: string = "ro") {
   const endpointType = type === "tv" ? "tv" : "movie";
-  const tmdbLang = lang === "en" ? "en-US" : "ro-RO";
+  const tmdbLang = toTmdbLang(lang);
   return getCachedMovieDetails(id, endpointType, tmdbLang);
 }
 
@@ -31,15 +32,14 @@ export default async function MoviePage({
   const movieId = parsedMovieId.data;
   const contentType = mediaTypeParamSchema.parse(resolvedSearchParams.type);
 
-  // Citim limba din cookie
-  const cookieStore = await cookies();
-  const lang = cookieStore.get("locale")?.value || "ro";
+  const lang = await getLocale();
+  const t = await getTranslations("MovieDetail");
 
   const movie: any = await getMovieDetails(movieId, contentType, lang);
   const { userId } = await auth();
 
   if (!movie) {
-    return <div className="text-white text-center mt-20 text-2xl">{lang === "en" ? "Content not found." : "Conținutul nu a putut fi găsit."}</div>;
+    return <div className="text-white text-center mt-20 text-2xl">{t("notFound")}</div>;
   }
 
   const title = movie.title || movie.name;
@@ -85,7 +85,7 @@ export default async function MoviePage({
         </div>
 
         <p className="text-lg text-zinc-300 leading-relaxed mb-8">
-          {movie.overview || (lang === "en" ? "This content does not have an English description yet." : "Acest conținut nu are încă o descriere în limba română.")}
+          {movie.overview || t("noDescription")}
         </p>
 
         {userId && (
@@ -100,11 +100,11 @@ export default async function MoviePage({
         )}
 
         <div className="border-t border-zinc-800 pt-8 mt-auto">
-          <h3 className="text-xl font-bold text-yellow-500 mb-6">{lang === "en" ? "Reviews Section" : "Zona de Recenzii"}</h3>
+          <h3 className="text-xl font-bold text-yellow-500 mb-6">{t("reviewsSection")}</h3>
 
           {!userId ? (
             <p className="text-zinc-500 bg-[#1f1f1f] p-4 rounded-lg border border-zinc-800 mb-12">
-              {lang === "en" ? "You must log in using the button above to leave a review." : "Trebuie să te autentifici folosind butonul de sus pentru a lăsa o recenzie."}
+              {t("mustLogin")}
             </p>
           ) : (
             <div className="mb-12">
@@ -115,11 +115,11 @@ export default async function MoviePage({
 
           <div className="space-y-6">
             <h4 className="text-lg font-bold text-zinc-300 border-b border-zinc-800 pb-2">
-              {lang === "en" ? `User Opinions (${reviews.length})` : `Păreri de la utilizatori (${reviews.length})`}
+              {t("userOpinions", { count: reviews.length })}
             </h4>
 
             {reviews.length === 0 ? (
-              <p className="text-zinc-500 italic">{lang === "en" ? "There are no reviews. Be the first to leave one!" : "Nu există nicio recenzie. Fii primul care lasă una!"}</p>
+              <p className="text-zinc-500 italic">{t("noReviews")}</p>
             ) : (
               reviews.map((review) => (
                 <div key={review.id} className="bg-[#1f1f1f] p-5 rounded-lg border border-zinc-800">
@@ -132,7 +132,7 @@ export default async function MoviePage({
                       )}
                       <div>
                         <p className="font-semibold text-zinc-200">{review.user.username}</p>
-                        <p className="text-xs text-zinc-500">{new Date(review.createdAt).toLocaleDateString(lang === "en" ? "en-US" : "ro-RO")}</p>
+                        <p className="text-xs text-zinc-500">{new Date(review.createdAt).toLocaleDateString(toTmdbLang(lang))}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-3">

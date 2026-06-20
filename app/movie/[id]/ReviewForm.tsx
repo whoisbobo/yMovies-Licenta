@@ -1,66 +1,32 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { submitReview } from "../../../app/actions";
 
 export default function ReviewForm({ movieId, movieTitle, mediaType }: { movieId: number, movieTitle: string, mediaType: string }) {
-  const [rating, setRating] = useState(0); 
-  const [hover, setHover] = useState(0);   
+  const [rating, setRating] = useState(0);
+  const [hover, setHover] = useState(0);
   const [loading, setLoading] = useState(false);
-  const [lang, setLang] = useState("ro");
-
-  // Citim cookie-ul de limbă pe client pentru a ști ce text să afișăm
-  useEffect(() => {
-    if (document.cookie.includes("locale=en")) {
-      setLang("en");
-    }
-  }, []);
-
-  // Dicționar local pentru acest formular
-  const t = {
-    ro: {
-      alertNoRating: "Te rog să acorzi o notă în stele!",
-      alertSuccess: "Recenzia a fost salvată cu succes în baza ta de date!",
-      yourRating: "Nota ta:",
-      ratingScore: (r: number) => `Nota: ${r} / 10`,
-      selectRating: "Selectează o nota",
-      yourComment: "Comentariul tau:",
-      commentPlaceholder: "Ce parere ai despre acest film?",
-      saving: "Se salveaza...",
-      submitButton: "Trimite Recenzia"
-    },
-    en: {
-      alertNoRating: "Please provide a star rating!",
-      alertSuccess: "The review has been successfully saved to the database!",
-      yourRating: "Your rating:",
-      ratingScore: (r: number) => `Score: ${r} / 10`,
-      selectRating: "Select a rating",
-      yourComment: "Your comment:",
-      commentPlaceholder: "What are your thoughts on this content?",
-      saving: "Saving...",
-      submitButton: "Submit Review"
-    }
-  };
-
-  const texts = lang === "en" ? t.en : t.ro;
+  const t = useTranslations("ReviewForm");
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    
+
     if (rating === 0) {
-      alert(texts.alertNoRating);
+      alert(t("alertNoRating"));
       return;
     }
 
     setLoading(true);
-    
+
     const formData = new FormData(e.currentTarget);
     await submitReview(formData);
-    
+
     setLoading(false);
-    (e.target as HTMLFormElement).reset(); 
-    setRating(0); 
-    alert(texts.alertSuccess);
+    (e.target as HTMLFormElement).reset();
+    setRating(0);
+    alert(t("alertSuccess"));
   };
 
   return (
@@ -71,7 +37,7 @@ export default function ReviewForm({ movieId, movieTitle, mediaType }: { movieId
       <input type="hidden" name="rating" value={rating} />
       
       <div className="mb-6">
-        <label className="block text-zinc-400 mb-2 font-medium">{texts.yourRating}</label>
+        <label className="block text-zinc-400 mb-2 font-medium">{t("yourRating")}</label>
         
         <div className="flex gap-1">
           {[1, 2, 3, 4, 5].map((star) => {
@@ -118,17 +84,17 @@ export default function ReviewForm({ movieId, movieTitle, mediaType }: { movieId
         </div>
         
         <span className="text-zinc-500 text-sm mt-2 inline-block">
-          {rating > 0 ? texts.ratingScore(rating) : texts.selectRating}
+          {rating > 0 ? t("ratingScore", { rating }) : t("selectRating")}
         </span>
       </div>
 
       <div className="mb-6">
-        <label className="block text-zinc-400 mb-2 font-medium">{texts.yourComment}</label>
-        <textarea 
+        <label className="block text-zinc-400 mb-2 font-medium">{t("yourComment")}</label>
+        <textarea
           name="comment"
           required
           rows={3}
-          placeholder={texts.commentPlaceholder}
+          placeholder={t("commentPlaceholder")}
           className="bg-[#141414] text-white border border-zinc-700 rounded px-4 py-3 w-full focus:outline-none focus:border-yellow-500 resize-none transition-colors"
         ></textarea>
       </div>
@@ -138,7 +104,7 @@ export default function ReviewForm({ movieId, movieTitle, mediaType }: { movieId
         disabled={loading}
         className="bg-yellow-500 text-zinc-900 px-8 py-2.5 rounded font-bold hover:bg-yellow-400 transition-colors disabled:opacity-50"
       >
-        {loading ? texts.saving : texts.submitButton}
+        {loading ? t("saving") : t("submitButton")}
       </button>
     </form>
   );

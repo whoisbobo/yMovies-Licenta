@@ -89,3 +89,17 @@ export async function getWithFallback<T>(
     return (cached?.data as T) ?? null;
   }
 }
+
+/**
+ * Refresh forțat, fără verificare de TTL — folosit de job-ul de sync periodic (cron),
+ * care trebuie să actualizeze cache-ul indiferent de cât de "proaspăt" e considerat.
+ */
+export async function refreshCache<T>(key: string, fetcher: () => Promise<T>): Promise<T> {
+  const data = await fetcher();
+  await prisma.pageCache.upsert({
+    where: { key },
+    update: { data: data as unknown as Prisma.InputJsonValue },
+    create: { key, data: data as unknown as Prisma.InputJsonValue },
+  });
+  return data;
+}

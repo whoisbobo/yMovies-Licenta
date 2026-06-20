@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { toggleWatchlist } from "../../actions";
 
 interface WatchlistButtonProps {
@@ -13,32 +14,7 @@ interface WatchlistButtonProps {
 export default function WatchlistButton({ movieId, movieTitle, initialInWatchlist, mediaType }: WatchlistButtonProps) {
   const [inWatchlist, setInWatchlist] = useState(initialInWatchlist);
   const [loading, setLoading] = useState(false);
-  const [lang, setLang] = useState("ro");
-
-  // Citim cookie-ul de limbă pe client
-  useEffect(() => {
-    if (document.cookie.includes("locale=en")) {
-      setLang("en");
-    }
-  }, []);
-
-  // Dicționar local pentru buton
-  const t = {
-    ro: {
-      processing: "Se procesează...",
-      inWatchlist: "✓ În Watchlist",
-      addWatchlist: "+ Adaugă în Watchlist",
-      errorLog: "Eroare la modificarea watchlist-ului:"
-    },
-    en: {
-      processing: "Processing...",
-      inWatchlist: "✓ In Watchlist",
-      addWatchlist: "+ Add to Watchlist",
-      errorLog: "Error modifying watchlist:"
-    }
-  };
-
-  const texts = lang === "en" ? t.en : t.ro;
+  const t = useTranslations("WatchlistButton");
 
   const handleClick = async () => {
     try {
@@ -46,7 +22,7 @@ export default function WatchlistButton({ movieId, movieTitle, initialInWatchlis
       await toggleWatchlist(movieId, movieTitle, mediaType);
       setInWatchlist(!inWatchlist);
     } catch (error) {
-      console.error(texts.errorLog, error);
+      console.error(t("errorLog"), error);
     } finally {
       setLoading(false);
     }
@@ -63,14 +39,14 @@ export default function WatchlistButton({ movieId, movieTitle, initialInWatchlis
       }`}
     >
       {loading ? (
-        texts.processing
+        t("processing")
       ) : inWatchlist ? (
         <>
-          <span>{texts.inWatchlist}</span>
+          <span>{t("inWatchlist")}</span>
         </>
       ) : (
         <>
-          <span>{texts.addWatchlist}</span>
+          <span>{t("addWatchlist")}</span>
         </>
       )}
     </button>

@@ -16,42 +16,42 @@ enum Role {
   ADMIN
 }
 
+enum MediaType {
+  movie
+  tv
+}
+
 model User {
   id        String          @id @default(uuid())
   email     String          @unique
   username  String          @unique
   avatarUrl String?
-  role      Role            @default(USER) 
+  role      Role            @default(USER)
   createdAt DateTime        @default(now())
   reviews   Review[]
   watchlist WatchlistItem[]
 }
 
 model WatchlistItem {
-  id        String   @id @default(uuid())
+  id        String    @id @default(uuid())
   userId    String
   movieId   Int
-  mediaType String   @default("movie")
-  createdAt DateTime @default(now())
+  mediaType MediaType @default(movie)
+  createdAt DateTime  @default(now())
 
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  movie     Movie    @relation(fields: [movieId, mediaType], references: [id, mediaType], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  movie     Movie     @relation(fields: [movieId, mediaType], references: [id, mediaType], onDelete: Cascade)
 
   @@unique([userId, movieId, mediaType])
 }
 
 model Movie {
-  id          Int
-  mediaType   String
-  title       String
-  description String?
-  releaseDate DateTime?
-  posterUrl   String?
-  
-  categoryId  Int
-  category    Category        @relation(fields: [categoryId], references: [id])
-  reviews     Review[]
-  watchlist   WatchlistItem[]
+  id        Int
+  mediaType MediaType
+  title     String
+
+  reviews   Review[]
+  watchlist WatchlistItem[]
 
   // Cheia primară compusă
   @@id([id, mediaType])
@@ -63,24 +63,20 @@ model PageCache {
   updatedAt DateTime @updatedAt
 }
 
-model Category {
-  id     Int     @id @default(autoincrement())
-  name   String  @unique
-  movies Movie[]
-}
-
 model Review {
-  id        Int      @id @default(autoincrement())
-  rating    Int      
+  id        Int       @id @default(autoincrement())
+  rating    Int
   comment   String?
-  createdAt DateTime @default(now())
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 
   userId    String
-  user      User     @relation(fields: [userId], references: [id])
-  
-  movieId   Int
-  mediaType String   @default("movie")
-  movie     Movie    @relation(fields: [movieId, mediaType], references: [id, mediaType])
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([userId, movieId, mediaType]) 
+  movieId   Int
+  mediaType MediaType @default(movie)
+  movie     Movie     @relation(fields: [movieId, mediaType], references: [id, mediaType], onDelete: Cascade)
+
+  @@unique([userId, movieId, mediaType])
+  @@index([movieId, mediaType])
 }

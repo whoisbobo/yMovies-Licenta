@@ -1,0 +1,66 @@
+{
+  "Common": {
+    "noPoster": "No Poster",
+    "tvShowBadge": "TV Show",
+    "previousPage": "Previous Page",
+    "nextPage": "Next Page",
+    "page": "Page"
+  },
+  "Nav": {
+    "movies": "Movies",
+    "tv": "TV Shows",
+    "categories": "Categories",
+    "myList": "My List",
+    "searchPlaceholder": "Search for a movie...",
+    "login": "Sign In",
+    "register": "Sign Up",
+    "hello": "Hello!"
+  },
+  "Home": {
+    "popularMovies": "Popular Movies",
+    "searchResultsFor": "Search results for: \"{query}\"",
+    "categoryLabel": "Category: {name}",
+    "noContent": "No content found on this page."
+  },
+  "Tv": {
+    "popularTv": "Popular TV Shows"
+  },
+  "Categories": {
+    "title": "Browse by Category"
+  },
+  "MovieDetail": {
+    "notFound": "Content not found.",
+    "reviewsSection": "Reviews Section",
+    "mustLogin": "You must log in using the button above to leave a review.",
+    "userOpinions": "User Opinions ({count})",
+    "noReviews": "There are no reviews. Be the first to leave one!",
+    "noDescription": "This content does not have an English description yet."
+  },
+  "Watchlist": {
+    "mustBeLoggedIn": "You must be logged in to view your watchlist.",
+    "title": "My Watchlist ({count})",
+    "empty": "You haven't added any movies or TV shows yet."
+  },
+  "ReviewForm": {
+    "alertNoRating": "Please provide a star rating!",
+    "alertSuccess": "The review has been successfully saved to the database!",
+    "yourRating": "Your rating:",
+    "ratingScore": "Score: {rating} / 10",
+    "selectRating": "Select a rating",
+    "yourComment": "Your comment:",
+    "commentPlaceholder": "What are your thoughts on this content?",
+    "saving": "Saving...",
+    "submitButton": "Submit Review"
+  },
+  "WatchlistButton": {
+    "processing": "Processing...",
+    "inWatchlist": "✓ In Watchlist",
+    "addWatchlist": "+ Add to Watchlist",
+    "errorLog": "Error modifying watchlist:"
+  },
+  "DeleteButton": {
+    "confirmDelete": "Are you sure you want to delete this review?",
+    "deleteLabel": "Delete",
+    "errorDelete": "The review could not be deleted."
+  }
+}

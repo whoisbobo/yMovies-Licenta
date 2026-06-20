@@ -1,0 +1,66 @@
+{
+  "Common": {
+    "noPoster": "Fără Poster",
+    "tvShowBadge": "Serial",
+    "previousPage": "Pagina Anterioară",
+    "nextPage": "Pagina Următoare",
+    "page": "Pagina"
+  },
+  "Nav": {
+    "movies": "Filme",
+    "tv": "Seriale",
+    "categories": "Categorii",
+    "myList": "Lista Mea",
+    "searchPlaceholder": "Caută un film...",
+    "login": "Autentificare",
+    "register": "Cont Nou",
+    "hello": "Salut!"
+  },
+  "Home": {
+    "popularMovies": "Filme Populare",
+    "searchResultsFor": "Rezultatele căutării pentru: \"{query}\"",
+    "categoryLabel": "Categoria: {name}",
+    "noContent": "Nu am găsit niciun conținut pe această pagină."
+  },
+  "Tv": {
+    "popularTv": "Seriale Populare"
+  },
+  "Categories": {
+    "title": "Răsfoiește după Categorie"
+  },
+  "MovieDetail": {
+    "notFound": "Conținutul nu a putut fi găsit.",
+    "reviewsSection": "Zona de Recenzii",
+    "mustLogin": "Trebuie să te autentifici folosind butonul de sus pentru a lăsa o recenzie.",
+    "userOpinions": "Păreri de la utilizatori ({count})",
+    "noReviews": "Nu există nicio recenzie. Fii primul care lasă una!",
+    "noDescription": "Acest conținut nu are încă o descriere în limba română."
+  },
+  "Watchlist": {
+    "mustBeLoggedIn": "Trebuie să fii autentificat pentru a-ți vedea lista de vizionare.",
+    "title": "Lista Mea de Vizionare ({count})",
+    "empty": "Nu ai adăugat încă niciun conținut în lista ta."
+  },
+  "ReviewForm": {
+    "alertNoRating": "Te rog să acorzi o notă în stele!",
+    "alertSuccess": "Recenzia a fost salvată cu succes în baza ta de date!",
+    "yourRating": "Nota ta:",
+    "ratingScore": "Nota: {rating} / 10",
+    "selectRating": "Selectează o notă",
+    "yourComment": "Comentariul tău:",
+    "commentPlaceholder": "Ce părere ai despre acest film?",
+    "saving": "Se salvează...",
+    "submitButton": "Trimite Recenzia"
+  },
+  "WatchlistButton": {
+    "processing": "Se procesează...",
+    "inWatchlist": "✓ În Watchlist",
+    "addWatchlist": "+ Adaugă în Watchlist",
+    "errorLog": "Eroare la modificarea watchlist-ului:"
+  },
+  "DeleteButton": {
+    "confirmDelete": "Sigur vrei să ștergi această recenzie?",
+    "deleteLabel": "Șterge",
+    "errorDelete": "Nu s-a putut șterge recenzia."
+  }
+}

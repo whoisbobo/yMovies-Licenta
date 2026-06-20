@@ -3,7 +3,8 @@
 import { auth } from "@clerk/nextjs/server";
 import { prisma } from "../../lib/prisma";
 import Link from "next/link";
-import { cookies } from "next/headers"; // Adăugat pentru detectarea limbii
+import { getTranslations, getLocale } from "next-intl/server";
+import { toTmdbLang } from "../../lib/locale";
 
 async function getWatchlistItems(userId: string) {
   const items = await prisma.watchlistItem.findMany({
@@ -19,16 +20,14 @@ async function getWatchlistItems(userId: string) {
 export default async function WatchlistPage() {
   const { userId } = await auth();
 
-  // Citim cookie-ul de limbă direct pe server
-  const cookieStore = await cookies();
-  const lang = cookieStore.get("locale")?.value || "ro";
+  const lang = await getLocale();
+  const t = await getTranslations("Watchlist");
+  const tCommon = await getTranslations("Common");
 
   if (!userId) {
     return (
       <main className="p-8 text-center mt-20 text-xl text-zinc-400">
-        {lang === "en" 
-          ? "You must be logged in to view your watchlist." 
-          : "Trebuie să fii autentificat pentru a-ți vedea lista de vizionare."}
+        {t("mustBeLoggedIn")}
       </main>
     );
   }
@@ -39,7 +38,7 @@ export default async function WatchlistPage() {
     listItems.map(async (item) => {
       try {
         // 1. Adaptăm limba în funcție de preferința utilizatorului
-        const tmdbLang = lang === "en" ? "en-US" : "ro-RO";
+        const tmdbLang = toTmdbLang(lang);
         
         // 2. Luăm tipul corect (movie sau tv) salvat anterior în Prisma
         const mediaType = item.movie?.mediaType || "movie"; 
@@ -68,12 +67,12 @@ export default async function WatchlistPage() {
   return (
     <main className="p-8 max-w-7xl mx-auto flex-1 w-full flex flex-col">
       <h2 className="text-2xl font-semibold mb-6 border-l-4 border-yellow-500 pl-3">
-        {lang === "en" ? `My Watchlist (${cleanMovies.length})` : `Lista Mea de Vizionare (${cleanMovies.length})`}
+        {t("title", { count: cleanMovies.length })}
       </h2>
 
       {cleanMovies.length === 0 ? (
         <div className="text-center text-zinc-500 mt-20 text-lg italic">
-          {lang === "en" ? "You haven't added any movies or TV shows yet." : "Nu ai adăugat încă niciun conținut în lista ta."}
+          {t("empty")}
         </div>
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
@@ -97,7 +96,7 @@ export default async function WatchlistPage() {
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center bg-zinc-800 text-zinc-500 text-sm">
-                      {lang === "en" ? "No Poster" : "Fără Poster"}
+                      {tCommon("noPoster")}
                     </div>
                   )}
                   <div className="absolute top-2 right-2 bg-zinc-900/90 text-yellow-500 px-2 py-1 rounded text-xs font-bold shadow">
@@ -105,7 +104,7 @@ export default async function WatchlistPage() {
                   </div>
                 </div>
                 <h3 className="font-medium text-zinc-300 line-clamp-1 group-hover:text-yellow-500 transition-colors">
-                  {displayTitle} {isTv && <span className="text-xs text-zinc-500 font-normal">({lang === "en" ? "TV Show" : "Serial"})</span>}
+                  {displayTitle} {isTv && <span className="text-xs text-zinc-500 font-normal">({tCommon("tvShowBadge")})</span>}
                 </h3>
               </Link>
             );

@@ -1,9 +1,11 @@
 "use client";
 
 import { useTransition } from "react";
+import { useLocale } from "next-intl";
 import { changeLanguage } from "../app/actions";
 
-export default function LanguageSwitcher({ currentLang }: { currentLang: string }) {
+export default function LanguageSwitcher() {
+  const currentLang = useLocale();
   const [isPending, startTransition] = useTransition();
 
   const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -40,6 +42,7 @@ export default function LanguageSwitcher({ currentLang }: { currentLang: string 
       >
         <option value="ro" className="bg-[#141414] text-yellow-500">Română</option>
         <option value="en" className="bg-[#141414] text-yellow-500">English</option>
+        <option value="tr" className="bg-[#141414] text-yellow-500">Türkçe</option>
       </select>
 
       {/* Săgeata în jos (Galbenă) */}

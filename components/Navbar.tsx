@@ -1,29 +1,20 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { SignInButton, SignUpButton, UserButton, useAuth } from "@clerk/nextjs";
+import { useTranslations } from "next-intl";
 import LanguageSwitcher from "./LanguageSwitcher";
-import { dictionary, Locale } from "../lib/dictionary";
 
 export default function Navbar() {
   const [searchQuery, setSearchQuery] = useState("");
-  const [lang, setLang] = useState<Locale>("ro"); 
   const router = useRouter();
-  
+
   // Am adăugat "isLoaded" pentru a preveni acel flicker de 1 secundă
   const { isLoaded, userId } = useAuth();
 
-  useEffect(() => {
-    if (document.cookie.includes("locale=en")) {
-      setLang("en");
-    } else {
-      setLang("ro");
-    }
-  }, []);
-
-  const t = dictionary[lang];
+  const t = useTranslations("Nav");
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,9 +34,9 @@ export default function Navbar() {
           </Link>
           
           <div className="hidden md:flex gap-6 text-zinc-400 font-medium items-center">
-            <Link href="/" className="hover:text-white transition-colors">{t.movies}</Link>
-            <Link href="/tv" className="hover:text-white transition-colors">{t.tv}</Link>
-            <Link href="/categories" className="hover:text-white transition-colors">{t.categories}</Link>
+            <Link href="/" className="hover:text-white transition-colors">{t("movies")}</Link>
+            <Link href="/tv" className="hover:text-white transition-colors">{t("tv")}</Link>
+            <Link href="/categories" className="hover:text-white transition-colors">{t("categories")}</Link>
           </div>
         </div>
 
@@ -54,7 +45,7 @@ export default function Navbar() {
           <div className="relative">
             <input
               type="text"
-              placeholder={t.search}
+              placeholder={t("searchPlaceholder")}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full bg-[#141414] text-white border border-zinc-700 rounded-full px-6 py-2 focus:outline-none focus:border-yellow-500"
@@ -74,15 +65,15 @@ export default function Navbar() {
              <div className="h-10 w-full"></div>
           ) : !userId ? (
             <div className="flex gap-3 items-center">
-              <LanguageSwitcher currentLang={lang} />
+              <LanguageSwitcher />
               <SignInButton mode="modal">
                 <button className="px-4 py-2 text-zinc-300 font-semibold text-sm hover:text-white transition-colors cursor-pointer">
-                  {t.login}
+                  {t("login")}
                 </button>
               </SignInButton>
               <SignUpButton mode="modal">
                 <button className="px-4 py-2 bg-yellow-500 text-zinc-900 font-bold text-sm rounded hover:bg-yellow-400 transition-colors cursor-pointer">
-                  {t.register}
+                  {t("register")}
                 </button>
               </SignUpButton>
             </div>
@@ -96,15 +87,15 @@ export default function Navbar() {
                 <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                   <path d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
                 </svg>
-                <span className="hidden sm:inline">{t.myList}</span>
+                <span className="hidden sm:inline">{t("myList")}</span>
               </Link>
 
               <div className="w-px h-6 bg-zinc-700 hidden sm:block"></div>
 
-              <LanguageSwitcher currentLang={lang} />
+              <LanguageSwitcher />
 
               <div className="flex items-center gap-3">
-                <span className="text-zinc-400 text-sm font-medium hidden md:block">{t.hello}</span>
+                <span className="text-zinc-400 text-sm font-medium hidden md:block">{t("hello")}</span>
                 <UserButton
                   appearance={{
                     elements: {

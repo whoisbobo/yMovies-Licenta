@@ -1,0 +1,66 @@
+{
+  "Common": {
+    "noPoster": "Afiş Yok",
+    "tvShowBadge": "Dizi",
+    "previousPage": "Önceki Sayfa",
+    "nextPage": "Sonraki Sayfa",
+    "page": "Sayfa"
+  },
+  "Nav": {
+    "movies": "Filmler",
+    "tv": "Diziler",
+    "categories": "Kategoriler",
+    "myList": "Listem",
+    "searchPlaceholder": "Bir film ara...",
+    "login": "Giriş Yap",
+    "register": "Kayıt Ol",
+    "hello": "Merhaba!"
+  },
+  "Home": {
+    "popularMovies": "Popüler Filmler",
+    "searchResultsFor": "Arama sonuçları: \"{query}\"",
+    "categoryLabel": "Kategori: {name}",
+    "noContent": "Bu sayfada içerik bulunamadı."
+  },
+  "Tv": {
+    "popularTv": "Popüler Diziler"
+  },
+  "Categories": {
+    "title": "Kategoriye Göre Gözat"
+  },
+  "MovieDetail": {
+    "notFound": "İçerik bulunamadı.",
+    "reviewsSection": "Yorumlar Bölümü",
+    "mustLogin": "Yorum yapmak için yukarıdaki düğmeyi kullanarak giriş yapmalısınız.",
+    "userOpinions": "Kullanıcı Yorumları ({count})",
+    "noReviews": "Henüz yorum yok. İlk yorumu sen yap!",
+    "noDescription": "Bu içeriğin henüz Türkçe açıklaması yok."
+  },
+  "Watchlist": {
+    "mustBeLoggedIn": "İzleme listenizi görmek için giriş yapmalısınız.",
+    "title": "İzleme Listem ({count})",
+    "empty": "Henüz hiçbir film veya dizi eklemediniz."
+  },
+  "ReviewForm": {
+    "alertNoRating": "Lütfen yıldızlı bir puan verin!",
+    "alertSuccess": "Yorumunuz veritabanına başarıyla kaydedildi!",
+    "yourRating": "Puanınız:",
+    "ratingScore": "Puan: {rating} / 10",
+    "selectRating": "Bir puan seçin",
+    "yourComment": "Yorumunuz:",
+    "commentPlaceholder": "Bu içerik hakkında ne düşünüyorsunuz?",
+    "saving": "Kaydediliyor...",
+    "submitButton": "Yorumu Gönder"
+  },
+  "WatchlistButton": {
+    "processing": "İşleniyor...",
+    "inWatchlist": "✓ İzleme Listesinde",
+    "addWatchlist": "+ İzleme Listesine Ekle",
+    "errorLog": "İzleme listesi güncellenirken hata oluştu:"
+  },
+  "DeleteButton": {
+    "confirmDelete": "Bu yorumu silmek istediğinizden eminmisiniz?",
+    "deleteLabel": "Sil",
+    "errorDelete": "Yorum silinemedi."
+  }
+}

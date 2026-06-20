@@ -3,14 +3,14 @@
 import { auth, currentUser } from "@clerk/nextjs/server";
 import { prisma } from "../lib/prisma";
 import Link from "next/link";
-import { cookies } from "next/headers"; // Importăm unalta pentru cookie-uri
-import { dictionary, Locale } from "../lib/dictionary";
+import { getTranslations, getLocale } from "next-intl/server";
 import { homeSearchParamsSchema } from "../lib/validation";
 import { getWithFallback, TTL } from "../lib/tmdbCache";
+import { toTmdbLang } from "../lib/locale";
 
 // Funcția primește acum și limba activă
 async function getMovies(query: string | undefined, genreId: string | undefined, page: number = 1, lang: string = "ro") {
-  const tmdbLang = lang === "en" ? "en-US" : "ro-RO"; // Convertim pentru TMDB
+  const tmdbLang = toTmdbLang(lang); // Convertim pentru TMDB
 
   let endpoint = `https://api.themoviedb.org/3/movie/popular?api_key=${process.env.TMDB_API_KEY}&language=${tmdbLang}&page=${page}`;
   let cacheKey = `discover:popular:${page}:${tmdbLang}`;
@@ -68,10 +68,9 @@ export default async function Home({
     }
   }
 
-  // Citim cookie-ul de limbă pe server
-  const cookieStore = await cookies();
-  const lang = (cookieStore.get("locale")?.value || "ro") as Locale;
-  const t = dictionary[lang];
+  const lang = await getLocale();
+  const t = await getTranslations("Home");
+  const tCommon = await getTranslations("Common");
 
   const resolvedSearchParams = await searchParams;
   const parsedParams = homeSearchParamsSchema.parse(resolvedSearchParams);
@@ -83,11 +82,11 @@ export default async function Home({
   // Trimitem limba extrasă din cookie către funcția de fetch
   const movies = await getMovies(query, genreId, currentPage, lang);
 
-  let pageTitle = t.popularMovies;
+  let pageTitle = t("popularMovies");
   if (query) {
-    pageTitle = lang === "en" ? `Search results for: "${query}"` : `Rezultatele căutării pentru: "${query}"`;
+    pageTitle = t("searchResultsFor", { query });
   } else if (genreName) {
-    pageTitle = lang === "en" ? `Category: ${genreName}` : `Categoria: ${genreName}`;
+    pageTitle = t("categoryLabel", { name: genreName });
   }
 
   const buildPageLink = (newPage: number) => {
@@ -107,7 +106,7 @@ export default async function Home({
 
       {movies.length === 0 ? (
         <div className="text-center text-zinc-500 mt-20 text-lg italic">
-          {lang === "en" ? "No content found on this page." : "Nu am găsit niciun conținut pe această pagină."}
+          {t("noContent")}
         </div>
       ) : (
         <>
@@ -124,7 +123,7 @@ export default async function Home({
                       <img src={`https://image.tmdb.org/t/p/w500${movie.poster_path}`} alt={displayTitle} className="w-full h-full object-cover" />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center bg-zinc-800 text-zinc-500 text-sm">
-                        {lang === "en" ? "No Poster" : "Fără Poster"}
+                        {tCommon("noPoster")}
                       </div>
                     )}
                     <div className="absolute top-2 right-2 bg-zinc-900/90 text-yellow-500 px-2 py-1 rounded text-xs font-bold shadow">
@@ -132,7 +131,7 @@ export default async function Home({
                     </div>
                   </div>
                   <h3 className="font-medium text-zinc-300 line-clamp-1 group-hover:text-yellow-500 transition-colors">
-                    {displayTitle} {isTv && <span className="text-xs text-zinc-500 font-normal">({lang === "en" ? "TV Show" : "Serial"})</span>}
+                    {displayTitle} {isTv && <span className="text-xs text-zinc-500 font-normal">({tCommon("tvShowBadge")})</span>}
                   </h3>
                 </Link>
               );
@@ -142,20 +141,20 @@ export default async function Home({
           <div className="flex justify-center items-center gap-6 mt-12 mb-8">
             {currentPage > 1 ? (
               <Link href={buildPageLink(currentPage - 1)} className="bg-zinc-800 hover:bg-zinc-700 text-white px-6 py-2 rounded-lg font-medium transition-colors">
-                &larr; {lang === "en" ? "Previous Page" : "Pagina Anterioară"}
+                &larr; {tCommon("previousPage")}
               </Link>
             ) : (
               <div className="px-6 py-2 rounded-lg font-medium bg-zinc-900 text-zinc-600 cursor-not-allowed">
-                &larr; {lang === "en" ? "Previous Page" : "Pagina Anterioară"}
+                &larr; {tCommon("previousPage")}
               </div>
             )}
-            
+
             <span className="text-yellow-500 font-bold bg-zinc-900/50 px-4 py-2 rounded-lg border border-yellow-500/20">
-              {lang === "en" ? "Page" : "Pagina"} {currentPage}
+              {tCommon("page")} {currentPage}
             </span>
 
             <Link href={buildPageLink(currentPage + 1)} className="bg-zinc-800 hover:bg-zinc-700 text-white px-6 py-2 rounded-lg font-medium transition-colors">
-              {lang === "en" ? "Next Page" : "Pagina Următoare"} &rarr;
+              {tCommon("nextPage")} &rarr;
             </Link>
           </div>
         </>

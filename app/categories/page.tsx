@@ -1,9 +1,10 @@
 import Link from "next/link";
-import { cookies } from "next/headers"; // Adăugat pentru detectarea limbii
+import { getTranslations, getLocale } from "next-intl/server";
+import { toTmdbLang } from "../../lib/locale";
 
 async function getGenres(lang: string = "ro") {
   // Convertim limba selectată pentru API-ul TMDB
-  const tmdbLang = lang === "en" ? "en-US" : "ro-RO";
+  const tmdbLang = toTmdbLang(lang);
   
   const res = await fetch(
     `https://api.themoviedb.org/3/genre/movie/list?api_key=${process.env.TMDB_API_KEY}&language=${tmdbLang}`,
@@ -15,10 +16,9 @@ async function getGenres(lang: string = "ro") {
 }
 
 export default async function CategoriesPage() {
-  // Citim cookie-ul de limbă pe server
-  const cookieStore = await cookies();
-  const lang = cookieStore.get("locale")?.value || "ro";
-  
+  const lang = await getLocale();
+  const t = await getTranslations("Categories");
+
   const genres = await getGenres(lang);
   // Stiluri de fundal gradient specifice platformelor media premium
   const gradients = [
@@ -33,7 +33,7 @@ export default async function CategoriesPage() {
   return (
     <main className="p-8 max-w-7xl mx-auto flex-1 w-full">
       <h2 className="text-2xl font-semibold mb-6 border-l-4 border-yellow-500 pl-3">
-        Răsfoiește după Categorie
+        {t("title")}
       </h2>
       
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">

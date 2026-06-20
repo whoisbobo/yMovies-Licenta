@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { z } from "zod";
 import { limitReview, limitWatchlist, limitDelete } from "../lib/ratelimit";
+import { SUPPORTED_LOCALES } from "../lib/locale";
 
 const reviewSchema = z.object({
   movieId: z.coerce.number().int().positive(),
@@ -24,7 +25,7 @@ const deleteReviewSchema = z.object({
   reviewId: z.coerce.number().int().positive(),
 });
 
-const languageSchema = z.enum(["ro", "en"]);
+const languageSchema = z.enum(SUPPORTED_LOCALES);
 
 async function ensureUserExists(userId: string) {
   const userRecord = await prisma.user.findUnique({ where: { id: userId } });
@@ -80,43 +81,27 @@ export async function submitReview(formData: FormData) {
 
   const actualMovieTitle = await fetchMovieTitle(movieId, mediaType);
 
-  const category = await prisma.category.upsert({
-    where: { name: "General" },
-    update: {},
-    create: { name: "General" }
-  });
-
   // UPSERT CU CHEIE COMPUSĂ
   await prisma.movie.upsert({
-    where: { 
-      id_mediaType: { id: movieId, mediaType: mediaType } 
+    where: {
+      id_mediaType: { id: movieId, mediaType: mediaType }
     },
-    update: {}, 
+    update: {},
     create: {
       id: movieId,
       mediaType: mediaType,
       title: actualMovieTitle,
-      categoryId: category.id,
     }
   });
 
-  // VERIFICARE REVIEW CU CHEIE COMPUSĂ
-  const existingReview = await prisma.review.findUnique({
+  // UPSERT ATOMIC CU CHEIE COMPUSĂ — elimină fereastra de cursă la submit-uri simultane
+  await prisma.review.upsert({
     where: {
       userId_movieId_mediaType: { userId, movieId, mediaType }
-    }
+    },
+    update: { rating, comment },
+    create: { rating, comment, userId, movieId, mediaType }
   });
-
-  if (existingReview) {
-    await prisma.review.update({
-      where: { id: existingReview.id },
-      data: { rating, comment }
-    });
-  } else {
-    await prisma.review.create({
-      data: { rating, comment, userId, movieId, mediaType }
-    });
-  }
 
   revalidatePath(`/movie/${movieId}`);
 }
@@ -190,12 +175,6 @@ export async function toggleWatchlist(movieIdRaw: number, movieTitleRaw: string,
   if (existingItem) {
     await prisma.watchlistItem.delete({ where: { id: existingItem.id } });
   } else {
-    const category = await prisma.category.upsert({
-      where: { name: "General" },
-      update: {},
-      create: { name: "General" },
-    });
-
     // UPSERT CU CHEIE COMPUSĂ
     await prisma.movie.upsert({
       where: { id_mediaType: { id: movieId, mediaType: mediaType } },
@@ -204,7 +183,6 @@ export async function toggleWatchlist(movieIdRaw: number, movieTitleRaw: string,
         id: movieId,
         mediaType: mediaType,
         title: movieTitle,
-        categoryId: category.id,
       },
     });
 
