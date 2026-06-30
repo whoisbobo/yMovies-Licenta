@@ -208,6 +208,7 @@ export async function toggleFollow(targetUserId: string): Promise<boolean> {
   } else {
     try {
       await prisma.follow.create({ data: { followerId: userId, followingId } });
+      await createNotification(followingId, userId, "FOLLOW");
     } catch (e: unknown) {
       // Ignoră cursa de dublu-click (P2002 = unique constraint)
       if (!(e && typeof e === "object" && "code" in e && (e as { code?: string }).code === "P2002")) throw e;
@@ -598,6 +599,33 @@ export async function toggleLike(movieIdRaw: number, movieTitleRaw: string, medi
   revalidatePath("/watchlist");
 }
 
+// ===== Notificări =====
+// Creează o notificare (best-effort). Nu te notifici pe tine însuți.
+async function createNotification(
+  recipientId: string,
+  actorId: string,
+  type: "FOLLOW" | "REVIEW_LIKE" | "REVIEW_COMMENT",
+  movieId?: number,
+  mediaType?: "movie" | "tv"
+) {
+  if (recipientId === actorId) return;
+  try {
+    await prisma.notification.create({
+      data: { recipientId, actorId, type, movieId: movieId ?? null, mediaType: mediaType ?? null },
+    });
+    revalidatePath("/notifications");
+  } catch {
+    // O eroare la notificare nu trebuie să strice acțiunea principală.
+  }
+}
+
+export async function markAllNotificationsRead() {
+  const { userId } = await auth();
+  if (!userId) throw new Error("Neautorizat");
+  await prisma.notification.updateMany({ where: { recipientId: userId, read: false }, data: { read: true } });
+  revalidatePath("/notifications");
+}
+
 // ===== Comentarii & like-uri la recenzii =====
 
 export type ReviewCommentDTO = {
@@ -624,13 +652,15 @@ export async function addReviewComment(reviewIdRaw: number, textRaw: string): Pr
 
   await ensureUserExists(userId);
 
-  const review = await prisma.review.findUnique({ where: { id: reviewId }, select: { movieId: true } });
+  const review = await prisma.review.findUnique({ where: { id: reviewId }, select: { movieId: true, mediaType: true, userId: true } });
   if (!review) throw new Error("Recenzia nu există");
 
   const created = await prisma.reviewComment.create({
     data: { reviewId, userId, text: parsed.data },
     include: { user: { select: { username: true, displayName: true, avatarUrl: true } } },
   });
+
+  await createNotification(review.userId, userId, "REVIEW_COMMENT", review.movieId, review.mediaType);
 
   revalidatePath(`/movie/${review.movieId}`);
 
@@ -676,7 +706,7 @@ export async function toggleReviewLike(reviewIdRaw: number): Promise<{ liked: bo
 
   await ensureUserExists(userId);
 
-  const review = await prisma.review.findUnique({ where: { id: reviewId }, select: { movieId: true } });
+  const review = await prisma.review.findUnique({ where: { id: reviewId }, select: { movieId: true, mediaType: true, userId: true } });
   if (!review) throw new Error("Recenzia nu există");
 
   const existing = await prisma.reviewLike.findUnique({ where: { reviewId_userId: { reviewId, userId } } });
@@ -687,6 +717,7 @@ export async function toggleReviewLike(reviewIdRaw: number): Promise<{ liked: bo
   } else {
     try {
       await prisma.reviewLike.create({ data: { reviewId, userId } });
+      await createNotification(review.userId, userId, "REVIEW_LIKE", review.movieId, review.mediaType);
     } catch (e: unknown) {
       if (!(e && typeof e === "object" && "code" in e && (e as { code?: string }).code === "P2002")) throw e;
     }

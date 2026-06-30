@@ -19,6 +19,7 @@
     "premium": "Premium",
     "members": "Membri",
     "admin": "Admin",
+    "notifications": "Notificări",
     "searchPlaceholder": "Caută un film...",
     "login": "Autentificare",
     "register": "Cont Nou",
@@ -141,6 +142,14 @@
   "Follow": {
     "follow": "Urmărește",
     "following": "Urmărit"
+  },
+  "Notifications": {
+    "title": "Notificări",
+    "mustLogin": "Trebuie să te autentifici pentru a-ți vedea notificările.",
+    "empty": "Nicio notificare încă.",
+    "verbFollow": "a început să te urmărească",
+    "verbLike": "ți-a apreciat recenzia la",
+    "verbComment": "a comentat la recenzia ta la"
   },
   "Admin": {
     "title": "Panou de administrare",

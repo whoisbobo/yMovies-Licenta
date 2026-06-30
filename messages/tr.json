@@ -19,6 +19,7 @@
     "premium": "Premium",
     "members": "Üyeler",
     "admin": "Yönetim",
+    "notifications": "Bildirimler",
     "searchPlaceholder": "Bir film ara...",
     "login": "Giriş Yap",
     "register": "Kayıt Ol",
@@ -141,6 +142,14 @@
   "Follow": {
     "follow": "Takip et",
     "following": "Takip ediliyor"
+  },
+  "Notifications": {
+    "title": "Bildirimler",
+    "mustLogin": "Bildirimlerini görmek için giriş yapmalısın.",
+    "empty": "Henüz bildirim yok.",
+    "verbFollow": "seni takip etmeye başladı",
+    "verbLike": "yorumunu beğendi:",
+    "verbComment": "yorumuna yorum yaptı:"
   },
   "Admin": {
     "title": "Yönetim paneli",

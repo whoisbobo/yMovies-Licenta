@@ -32,16 +32,20 @@ export default async function RootLayout({
   const messages = await getMessages();
 
   const { userId } = await auth();
-  const isAdmin = userId
-    ? (await prisma.user.findUnique({ where: { id: userId }, select: { role: true } }))?.role === "ADMIN"
-    : false;
+  const [me, unreadNotifications] = userId
+    ? await Promise.all([
+        prisma.user.findUnique({ where: { id: userId }, select: { role: true } }),
+        prisma.notification.count({ where: { recipientId: userId, read: false } }),
+      ])
+    : [null, 0];
+  const isAdmin = me?.role === "ADMIN";
 
   return (
     <ClerkProvider>
       <html lang={locale} className={`${geistSans.variable} ${geistMono.variable} h-full`}>
         <body className="min-h-full bg-[#141414] text-white flex flex-col">
           <NextIntlClientProvider locale={locale} messages={messages}>
-            <Navbar isAdmin={isAdmin} /> {/* <--- Acum Navbar-ul va sta aici nemișcat */}
+            <Navbar isAdmin={isAdmin} unreadNotifications={unreadNotifications} /> {/* <--- Acum Navbar-ul va sta aici nemișcat */}
             {children}
           </NextIntlClientProvider>
         </body>

@@ -21,6 +21,12 @@ enum MediaType {
   tv
 }
 
+enum NotificationType {
+  FOLLOW
+  REVIEW_LIKE
+  REVIEW_COMMENT
+}
+
 model User {
   id                   String          @id @default(uuid())
   email                String          @unique
@@ -46,6 +52,8 @@ model User {
   likes                Like[]
   reviewComments       ReviewComment[]
   reviewLikes          ReviewLike[]
+  notifications        Notification[]  @relation("NotificationsReceived")
+  notificationsSent    Notification[]  @relation("NotificationsSent")
 
   // Graf social: "following" = userii pe care îi urmărește; "followers" = cei care îl urmăresc.
   following            Follow[]        @relation("Following")
@@ -210,4 +218,22 @@ model ReviewLike {
 
   @@unique([reviewId, userId])
   @@index([reviewId])
+}
+
+// Notificări: follow nou, like sau comentariu la recenzia ta.
+model Notification {
+  id          String           @id @default(uuid())
+  recipientId String
+  actorId     String
+  type        NotificationType
+  movieId     Int?
+  mediaType   MediaType?
+  read        Boolean          @default(false)
+  createdAt   DateTime         @default(now())
+
+  recipient   User             @relation("NotificationsReceived", fields: [recipientId], references: [id], onDelete: Cascade)
+  actor       User             @relation("NotificationsSent", fields: [actorId], references: [id], onDelete: Cascade)
+
+  @@index([recipientId, read])
+  @@index([recipientId, createdAt])
 }
