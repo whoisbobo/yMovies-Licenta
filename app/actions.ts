@@ -16,6 +16,7 @@ const reviewSchema = z.object({
   movieId: z.coerce.number().int().positive(),
   mediaType: z.enum(["movie", "tv"]),
   comment: z.string().trim().min(1).max(2000),
+  hasSpoiler: z.coerce.boolean().default(false),
 });
 
 const ratingValueSchema = z.object({
@@ -79,13 +80,14 @@ export async function submitReview(formData: FormData) {
     movieId: formData.get("movieId"),
     mediaType: formData.get("mediaType") || "movie",
     comment: formData.get("comment") ?? "",
+    hasSpoiler: formData.get("hasSpoiler") === "on" || formData.get("hasSpoiler") === "true",
   });
 
   if (!parsed.success) {
     throw new Error(parsed.error.issues[0]?.message || "Date invalide");
   }
 
-  const { movieId, mediaType, comment } = parsed.data;
+  const { movieId, mediaType, comment, hasSpoiler } = parsed.data;
 
   const actualMovieTitle = await fetchMovieTitle(movieId, mediaType);
 
@@ -107,8 +109,8 @@ export async function submitReview(formData: FormData) {
     where: {
       userId_movieId_mediaType: { userId, movieId, mediaType }
     },
-    update: { comment },
-    create: { comment, userId, movieId, mediaType }
+    update: { comment, hasSpoiler },
+    create: { comment, hasSpoiler, userId, movieId, mediaType }
   });
 
   // A scrie o recenzie implică automat că l-ai văzut, și se scoate din watchlist.

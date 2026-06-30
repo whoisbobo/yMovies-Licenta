@@ -14,6 +14,7 @@ export default async function MyReviewsPage() {
   const tmdbLang = toTmdbLang(lang);
   const t = await getTranslations("MyReviews");
   const tCommon = await getTranslations("Common");
+  const tReviewForm = await getTranslations("ReviewForm");
 
   if (!userId) {
     return (
@@ -98,9 +99,16 @@ export default async function MyReviewsPage() {
                     </div>
                   </div>
 
-                  <p className="text-xs text-zinc-500 mt-1">
-                    {new Date(review.createdAt).toLocaleDateString(tmdbLang)}
-                  </p>
+                  <div className="flex items-center gap-2 mt-1">
+                    <p className="text-xs text-zinc-500">
+                      {new Date(review.createdAt).toLocaleDateString(tmdbLang)}
+                    </p>
+                    {review.hasSpoiler && (
+                      <span className="text-[10px] font-semibold uppercase tracking-wide text-yellow-500/90 bg-yellow-500/10 border border-yellow-500/30 rounded px-1.5 py-0.5">
+                        ⚠ {tReviewForm("spoilerWarning")}
+                      </span>
+                    )}
+                  </div>
 
                   {review.comment && (
                     <p className="text-zinc-300 mt-3 leading-relaxed">{review.comment}</p>

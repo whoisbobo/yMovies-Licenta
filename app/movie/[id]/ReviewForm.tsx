@@ -27,7 +27,7 @@ export default function ReviewForm({ movieId, movieTitle, mediaType }: { movieId
       <input type="hidden" name="mediaType" value={mediaType} />
       <input type="hidden" name="movieTitle" value={movieTitle} />
 
-      <div className="mb-6">
+      <div className="mb-4">
         <label className="block text-zinc-400 mb-2 font-medium">{t("yourComment")}</label>
         <textarea
           name="comment"
@@ -37,6 +37,15 @@ export default function ReviewForm({ movieId, movieTitle, mediaType }: { movieId
           className="bg-[#141414] text-white border border-zinc-700 rounded px-4 py-3 w-full focus:outline-none focus:border-yellow-500 resize-none transition-colors"
         ></textarea>
       </div>
+
+      <label className="flex items-center gap-2 mb-6 text-sm text-zinc-400 cursor-pointer select-none">
+        <input
+          type="checkbox"
+          name="hasSpoiler"
+          className="w-4 h-4 rounded border-zinc-600 bg-[#141414] text-yellow-500 accent-yellow-500"
+        />
+        {t("spoilerLabel")}
+      </label>
 
       <button
         type="submit"

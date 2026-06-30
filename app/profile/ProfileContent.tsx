@@ -32,6 +32,7 @@ export default async function ProfileContent({
   const tCommon = await getTranslations("Common");
   const tActivity = await getTranslations("Activity");
   const tDiary = await getTranslations("Diary");
+  const tReviewForm = await getTranslations("ReviewForm");
 
   const dbUser = await prisma.user.findUnique({ where: { id: targetUserId } });
   if (!dbUser) {
@@ -368,8 +369,12 @@ export default async function ProfileContent({
                       <p className="text-xs text-zinc-500 mt-0.5">
                         {new Date(review.createdAt).toLocaleDateString(tmdbLang)}
                       </p>
-                      {review.comment && (
-                        <p className="text-zinc-400 text-sm mt-2 line-clamp-2">{review.comment}</p>
+                      {review.hasSpoiler ? (
+                        <p className="text-yellow-500/80 text-sm mt-2 italic">⚠ {tReviewForm("spoilerWarning")}</p>
+                      ) : (
+                        review.comment && (
+                          <p className="text-zinc-400 text-sm mt-2 line-clamp-2">{review.comment}</p>
+                        )
                       )}
                     </div>
                   </div>

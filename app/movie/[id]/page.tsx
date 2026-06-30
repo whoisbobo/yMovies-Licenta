@@ -7,6 +7,7 @@ import { prisma } from "../../../lib/prisma";
 import DeleteButton from "./DeleteButton";
 import MovieActionBar from "./MovieActionBar";
 import RatingControl from "./RatingControl";
+import SpoilerComment from "./SpoilerComment";
 import { getTranslations, getLocale } from "next-intl/server";
 import { movieIdParamSchema, mediaTypeParamSchema } from "../../../lib/validation";
 import { notFound } from "next/navigation";
@@ -169,7 +170,7 @@ export default async function MoviePage({
                       {(dbUser?.role === "ADMIN" || dbUser?.id === review.userId) && <DeleteButton reviewId={review.id} />}
                     </div>
                   </div>
-                  <p className="text-zinc-300 leading-relaxed">{review.comment}</p>
+                  <SpoilerComment text={review.comment ?? ""} isSpoiler={review.hasSpoiler} />
                 </div>
               ))
             )}
