@@ -17,26 +17,26 @@ async function computeGenreAffinity(
   userId: string,
   lang: string
 ): Promise<GenreScore[]> {
-  const reviews = await prisma.review.findMany({
+  const ratings = await prisma.rating.findMany({
     where: { userId },
-    select: { rating: true, movieId: true, mediaType: true },
+    select: { value: true, movieId: true, mediaType: true },
   });
 
   const genreScores = new Map<number, GenreScore>();
 
   await Promise.all(
-    reviews.map(async (review) => {
-      const details = await getCachedMovieDetails(review.movieId, review.mediaType, lang);
+    ratings.map(async (rating) => {
+      const details = await getCachedMovieDetails(rating.movieId, rating.mediaType, lang);
       const genres = (details as { genres?: { id: number; name: string }[] } | null)?.genres;
       if (!genres) return;
 
       for (const genre of genres) {
         const existing = genreScores.get(genre.id);
         if (existing) {
-          existing.score += review.rating;
+          existing.score += rating.value;
           existing.count += 1;
         } else {
-          genreScores.set(genre.id, { id: genre.id, name: genre.name, score: review.rating, count: 1 });
+          genreScores.set(genre.id, { id: genre.id, name: genre.name, score: rating.value, count: 1 });
         }
       }
     })
@@ -69,11 +69,16 @@ export async function getRecommendations(
   const topGenres = genreScores.slice(0, TOP_GENRES_COUNT);
   const limit = isPremium ? PREMIUM_TIER_LIMIT : FREE_TIER_LIMIT;
 
-  const reviewedAndWatchlisted = await prisma.review.findMany({
-    where: { userId },
-    select: { movieId: true, mediaType: true },
-  });
-  const excludeSet = new Set(reviewedAndWatchlisted.map((r) => `${r.mediaType}:${r.movieId}`));
+  // Excludem tot ce a "atins" deja userul: notate, văzute și din watchlist —
+  // ca să nu-i recomandăm filme pe care le-a văzut sau și le-a pus deja în plan.
+  const [ratedItems, watchedItems, watchlistItems] = await Promise.all([
+    prisma.rating.findMany({ where: { userId }, select: { movieId: true, mediaType: true } }),
+    prisma.watched.findMany({ where: { userId }, select: { movieId: true, mediaType: true } }),
+    prisma.watchlistItem.findMany({ where: { userId }, select: { movieId: true, mediaType: true } }),
+  ]);
+  const excludeSet = new Set(
+    [...ratedItems, ...watchedItems, ...watchlistItems].map((r) => `${r.mediaType}:${r.movieId}`)
+  );
 
   const seen = new Set<string>();
   const recommendations: Recommendation[] = [];
