@@ -1,10 +1,12 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @next/next/no-img-element */
 import { auth } from "@clerk/nextjs/server";
+import Link from "next/link";
 import ReviewForm from "./ReviewForm";
 import { prisma } from "../../../lib/prisma";
 import DeleteButton from "./DeleteButton";
-import WatchlistButton from "./WatchlistButton";
+import MovieActionBar from "./MovieActionBar";
+import RatingControl from "./RatingControl";
 import { getTranslations, getLocale } from "next-intl/server";
 import { movieIdParamSchema, mediaTypeParamSchema } from "../../../lib/validation";
 import { notFound } from "next/navigation";
@@ -56,27 +58,38 @@ export default async function MoviePage({
   const dbUser = userId ? await prisma.user.findUnique({ where: { id: userId } }) : null;
 
   // AICI AM MODIFICAT: Acum filtrăm recenziile folosind și tipul media!
-  const reviews = await prisma.review.findMany({
-    where: { 
-      movieId: movieId,
-      mediaType: contentType 
-    },
-    include: { user: true },
-    orderBy: { createdAt: 'desc' }
-  });
+  const [reviews, movieRatings] = await Promise.all([
+    prisma.review.findMany({
+      where: { movieId, mediaType: contentType },
+      include: { user: true },
+      orderBy: { createdAt: "desc" },
+    }),
+    prisma.rating.findMany({
+      where: { movieId, mediaType: contentType },
+      select: { userId: true, value: true },
+    }),
+  ]);
 
-  const watchlistItem = userId
-    ? await prisma.watchlistItem.findUnique({
-      where: {
-        userId_movieId_mediaType: { 
-          userId: userId as string,
-          movieId: movieId,       // <--- AICI E MODIFICAREA: Folosim direct variabila calculată sus!
-          mediaType: contentType,     
-        },
-      },
-    })
-  : null;
+  // Notele filmului, indexate după userId — recenzia și nota sunt separate acum.
+  const ratingByUser = new Map(movieRatings.map((r) => [r.userId, r.value]));
+
+  const compoundKey = userId
+    ? { userId: userId as string, movieId, mediaType: contentType }
+    : null;
+
+  const [watchlistItem, watchedItem, likeItem] = compoundKey
+    ? await Promise.all([
+        prisma.watchlistItem.findUnique({ where: { userId_movieId_mediaType: compoundKey } }),
+        prisma.watched.findUnique({ where: { userId_movieId_mediaType: compoundKey } }),
+        prisma.like.findUnique({ where: { userId_movieId_mediaType: compoundKey } }),
+      ])
+    : [null, null, null];
+
   const inWatchlist = !!watchlistItem;
+  const isWatched = !!watchedItem;
+  const isLiked = !!likeItem;
+  const myRating = userId ? ratingByUser.get(userId) ?? 0 : 0;
+  const hasReviewOrRating = myRating > 0 || (userId ? reviews.some((r) => r.userId === userId) : false);
 
   return (
     <main className="max-w-6xl mx-auto px-8 py-8 flex flex-col md:flex-row gap-12 flex-1 w-full">
@@ -99,12 +112,16 @@ export default async function MoviePage({
         </p>
 
         {userId && (
-          <div className="mb-6">
-            <WatchlistButton 
-            movieId={movie.id} 
-            movieTitle={title} 
-            initialInWatchlist={inWatchlist}
-            mediaType={contentType}
+          <div className="mb-6 space-y-4">
+            <RatingControl movieId={movie.id} movieTitle={title} mediaType={contentType} initialRating={myRating} />
+            <MovieActionBar
+              movieId={movie.id}
+              movieTitle={title}
+              mediaType={contentType}
+              initialInWatchlist={inWatchlist}
+              initialIsWatched={isWatched}
+              initialIsLiked={isLiked}
+              hasReviewOrRating={hasReviewOrRating}
             />
           </div>
         )}
@@ -134,19 +151,21 @@ export default async function MoviePage({
               reviews.map((review) => (
                 <div key={review.id} className="bg-[#1f1f1f] p-5 rounded-lg border border-zinc-800">
                   <div className="flex justify-between items-start mb-4">
-                    <div className="flex items-center gap-3">
+                    <Link href={`/users/${review.user.username}`} className="flex items-center gap-3 group">
                       {review.user.avatarUrl ? (
                         <img src={review.user.avatarUrl} alt={review.user.username} className="w-10 h-10 rounded-full border border-zinc-700 object-cover" />
                       ) : (
                         <div className="w-10 h-10 bg-zinc-900 rounded-full flex items-center justify-center font-bold text-zinc-500">{review.user.username.substring(0, 2).toUpperCase()}</div>
                       )}
                       <div>
-                        <p className="font-semibold text-zinc-200">{review.user.username}</p>
+                        <p className="font-semibold text-zinc-200 group-hover:text-yellow-500 transition-colors">{review.user.displayName || review.user.username}</p>
                         <p className="text-xs text-zinc-500">{new Date(review.createdAt).toLocaleDateString(toTmdbLang(lang))}</p>
                       </div>
-                    </div>
+                    </Link>
                     <div className="flex items-center gap-3">
-                      <div className="bg-zinc-900 px-3 py-1 rounded text-yellow-500 font-bold">★ {(review.rating / 2).toFixed(1)}</div>
+                      {ratingByUser.has(review.userId) && (
+                        <div className="bg-zinc-900 px-3 py-1 rounded text-yellow-500 font-bold">★ {(ratingByUser.get(review.userId)! / 2).toFixed(1)}</div>
+                      )}
                       {(dbUser?.role === "ADMIN" || dbUser?.id === review.userId) && <DeleteButton reviewId={review.id} />}
                     </div>
                   </div>

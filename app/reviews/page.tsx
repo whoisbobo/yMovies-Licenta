@@ -23,15 +23,17 @@ export default async function MyReviewsPage() {
     );
   }
 
-  const reviews = await prisma.review.findMany({
-    where: { userId },
-    orderBy: { createdAt: "desc" },
-  });
+  const [reviews, ratings] = await Promise.all([
+    prisma.review.findMany({ where: { userId }, orderBy: { createdAt: "desc" } }),
+    prisma.rating.findMany({ where: { userId }, select: { movieId: true, mediaType: true, value: true } }),
+  ]);
+
+  const ratingMap = new Map(ratings.map((r) => [`${r.mediaType}:${r.movieId}`, r.value]));
 
   const detailedReviews = await Promise.all(
     reviews.map(async (review) => {
       const details: any = await getCachedMovieDetails(review.movieId, review.mediaType, tmdbLang);
-      return { review, details };
+      return { review, details, rating: ratingMap.get(`${review.mediaType}:${review.movieId}`) ?? null };
     })
   );
 
@@ -47,7 +49,7 @@ export default async function MyReviewsPage() {
         </div>
       ) : (
         <div className="space-y-4">
-          {detailedReviews.map(({ review, details }) => {
+          {detailedReviews.map(({ review, details, rating }) => {
             const title = details?.title || details?.name || t("unknownTitle");
             const isTv = review.mediaType === "tv";
 
@@ -87,9 +89,11 @@ export default async function MyReviewsPage() {
                       )}
                     </Link>
                     <div className="flex items-center gap-3 flex-shrink-0">
-                      <div className="bg-zinc-900 px-3 py-1 rounded text-yellow-500 font-bold text-sm">
-                        ★ {(review.rating / 2).toFixed(1)}
-                      </div>
+                      {rating !== null && (
+                        <div className="bg-zinc-900 px-3 py-1 rounded text-yellow-500 font-bold text-sm">
+                          ★ {(rating / 2).toFixed(1)}
+                        </div>
+                      )}
                       <DeleteButton reviewId={review.id} />
                     </div>
                   </div>
