@@ -8,6 +8,8 @@ import DeleteButton from "./DeleteButton";
 import MovieActionBar from "./MovieActionBar";
 import RatingControl from "./RatingControl";
 import SpoilerComment from "./SpoilerComment";
+import ReviewSocial from "./ReviewSocial";
+import { type ReviewCommentDTO } from "../../actions";
 import { getTranslations, getLocale } from "next-intl/server";
 import { movieIdParamSchema, mediaTypeParamSchema } from "../../../lib/validation";
 import { notFound } from "next/navigation";
@@ -73,6 +75,41 @@ export default async function MoviePage({
 
   // Notele filmului, indexate după userId — recenzia și nota sunt separate acum.
   const ratingByUser = new Map(movieRatings.map((r) => [r.userId, r.value]));
+
+  // Like-uri și comentarii pe recenzii (în bulk, ca să evităm N+1).
+  const reviewIds = reviews.map((r) => r.id);
+  const [reviewLikes, reviewComments] = reviewIds.length
+    ? await Promise.all([
+        prisma.reviewLike.findMany({ where: { reviewId: { in: reviewIds } }, select: { reviewId: true, userId: true } }),
+        prisma.reviewComment.findMany({
+          where: { reviewId: { in: reviewIds } },
+          orderBy: { createdAt: "asc" },
+          include: { user: { select: { username: true, displayName: true, avatarUrl: true } } },
+        }),
+      ])
+    : [[], []];
+
+  const likeCountByReview = new Map<number, number>();
+  const likedByMe = new Set<number>();
+  for (const l of reviewLikes) {
+    likeCountByReview.set(l.reviewId, (likeCountByReview.get(l.reviewId) ?? 0) + 1);
+    if (l.userId === userId) likedByMe.add(l.reviewId);
+  }
+  const commentsByReview = new Map<number, ReviewCommentDTO[]>();
+  for (const c of reviewComments) {
+    const dto: ReviewCommentDTO = {
+      id: c.id,
+      text: c.text,
+      createdAt: c.createdAt.toISOString(),
+      userId: c.userId,
+      username: c.user.username,
+      displayName: c.user.displayName,
+      avatarUrl: c.user.avatarUrl,
+    };
+    const arr = commentsByReview.get(c.reviewId) ?? [];
+    arr.push(dto);
+    commentsByReview.set(c.reviewId, arr);
+  }
 
   const compoundKey = userId
     ? { userId: userId as string, movieId, mediaType: contentType }
@@ -171,6 +208,16 @@ export default async function MoviePage({
                     </div>
                   </div>
                   <SpoilerComment text={review.comment ?? ""} isSpoiler={review.hasSpoiler} />
+
+                  <ReviewSocial
+                    reviewId={review.id}
+                    initialLikeCount={likeCountByReview.get(review.id) ?? 0}
+                    initialLiked={likedByMe.has(review.id)}
+                    initialComments={commentsByReview.get(review.id) ?? []}
+                    isLoggedIn={!!userId}
+                    currentUserId={userId ?? null}
+                    isAdmin={dbUser?.role === "ADMIN"}
+                  />
                 </div>
               ))
             )}

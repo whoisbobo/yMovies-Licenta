@@ -78,6 +78,14 @@
     "unwatchConfirm": "Șterge oricum",
     "unwatchCancel": "Anulează"
   },
+  "ReviewSocial": {
+    "comments": "Comentarii",
+    "noComments": "Niciun comentariu încă.",
+    "addPlaceholder": "Scrie un comentariu...",
+    "post": "Trimite",
+    "deleteLabel": "Șterge",
+    "loginToComment": "Autentifică-te ca să comentezi."
+  },
   "DeleteButton": {
     "confirmDelete": "Sigur vrei să ștergi această recenzie?",
     "deleteLabel": "Șterge",

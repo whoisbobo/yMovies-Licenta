@@ -78,6 +78,14 @@
     "unwatchConfirm": "Yine de sil",
     "unwatchCancel": "İptal"
   },
+  "ReviewSocial": {
+    "comments": "Yorumlar",
+    "noComments": "Henüz yorum yok.",
+    "addPlaceholder": "Bir yorum yaz...",
+    "post": "Gönder",
+    "deleteLabel": "Sil",
+    "loginToComment": "Yorum yapmak için giriş yap."
+  },
   "DeleteButton": {
     "confirmDelete": "Bu yorumu silmek istediğinizden eminmisiniz?",
     "deleteLabel": "Sil",

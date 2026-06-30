@@ -44,6 +44,8 @@ model User {
   favorites            Favorite[]
   watched              Watched[]
   likes                Like[]
+  reviewComments       ReviewComment[]
+  reviewLikes          ReviewLike[]
 
   // Graf social: "following" = userii pe care îi urmărește; "followers" = cei care îl urmăresc.
   following            Follow[]        @relation("Following")
@@ -175,6 +177,37 @@ model Review {
   mediaType MediaType @default(movie)
   movie     Movie     @relation(fields: [movieId, mediaType], references: [id, mediaType], onDelete: Cascade)
 
+  comments  ReviewComment[]
+  likes     ReviewLike[]
+
   @@unique([userId, movieId, mediaType])
   @@index([movieId, mediaType])
+}
+
+// Comentarii pe o recenzie (thread de discuție sub recenzie).
+model ReviewComment {
+  id        String   @id @default(uuid())
+  reviewId  Int
+  userId    String
+  text      String
+  createdAt DateTime @default(now())
+
+  review    Review   @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([reviewId])
+}
+
+// Like-uri pe o recenzie (distinct de like-ul pe film).
+model ReviewLike {
+  id        String   @id @default(uuid())
+  reviewId  Int
+  userId    String
+  createdAt DateTime @default(now())
+
+  review    Review   @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([reviewId, userId])
+  @@index([reviewId])
 }

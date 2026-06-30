@@ -6,7 +6,7 @@ import { revalidatePath } from "next/cache";
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { limitReview, limitWatchlist, limitDelete, limitCheckout, limitWatched, limitLike, limitFavorite, limitProfile, limitFollow } from "../lib/ratelimit";
+import { limitReview, limitWatchlist, limitDelete, limitCheckout, limitWatched, limitLike, limitFavorite, limitProfile, limitFollow, limitComment } from "../lib/ratelimit";
 import { SUPPORTED_LOCALES, toTmdbLang } from "../lib/locale";
 import { getStripe } from "../lib/stripe";
 import { FAVORITE_LIMIT, MOVIE_GENRES, FAVORITE_GENRES_LIMIT } from "../lib/constants";
@@ -596,6 +596,106 @@ export async function toggleLike(movieIdRaw: number, movieTitleRaw: string, medi
   revalidatePath("/profile");
   revalidatePath("/watched");
   revalidatePath("/watchlist");
+}
+
+// ===== Comentarii & like-uri la recenzii =====
+
+export type ReviewCommentDTO = {
+  id: string;
+  text: string;
+  createdAt: string;
+  userId: string;
+  username: string;
+  displayName: string | null;
+  avatarUrl: string | null;
+};
+
+const reviewCommentSchema = z.string().trim().min(1).max(1000);
+
+export async function addReviewComment(reviewIdRaw: number, textRaw: string): Promise<ReviewCommentDTO> {
+  const { userId } = await auth();
+  if (!userId) throw new Error("Neautorizat");
+
+  await limitComment(userId);
+
+  const reviewId = z.coerce.number().int().positive().parse(reviewIdRaw);
+  const parsed = reviewCommentSchema.safeParse(textRaw);
+  if (!parsed.success) throw new Error("Comentariu invalid");
+
+  await ensureUserExists(userId);
+
+  const review = await prisma.review.findUnique({ where: { id: reviewId }, select: { movieId: true } });
+  if (!review) throw new Error("Recenzia nu există");
+
+  const created = await prisma.reviewComment.create({
+    data: { reviewId, userId, text: parsed.data },
+    include: { user: { select: { username: true, displayName: true, avatarUrl: true } } },
+  });
+
+  revalidatePath(`/movie/${review.movieId}`);
+
+  return {
+    id: created.id,
+    text: created.text,
+    createdAt: created.createdAt.toISOString(),
+    userId: created.userId,
+    username: created.user.username,
+    displayName: created.user.displayName,
+    avatarUrl: created.user.avatarUrl,
+  };
+}
+
+export async function deleteReviewComment(commentIdRaw: string) {
+  const { userId } = await auth();
+  if (!userId) throw new Error("Neautorizat");
+
+  const commentId = z.string().trim().min(1).parse(commentIdRaw);
+
+  const comment = await prisma.reviewComment.findUnique({
+    where: { id: commentId },
+    select: { userId: true, review: { select: { movieId: true } } },
+  });
+  if (!comment) throw new Error("Comentariul nu există");
+
+  const me = await prisma.user.findUnique({ where: { id: userId }, select: { role: true } });
+  const isAdmin = me?.role === "ADMIN";
+  if (comment.userId !== userId && !isAdmin) throw new Error("Nu ai permisiunea");
+
+  await prisma.reviewComment.delete({ where: { id: commentId } });
+  revalidatePath(`/movie/${comment.review.movieId}`);
+}
+
+// Like / unlike pe o recenzie. Întoarce noua stare + numărul de like-uri.
+export async function toggleReviewLike(reviewIdRaw: number): Promise<{ liked: boolean; count: number }> {
+  const { userId } = await auth();
+  if (!userId) throw new Error("Neautorizat");
+
+  await limitLike(userId);
+
+  const reviewId = z.coerce.number().int().positive().parse(reviewIdRaw);
+
+  await ensureUserExists(userId);
+
+  const review = await prisma.review.findUnique({ where: { id: reviewId }, select: { movieId: true } });
+  if (!review) throw new Error("Recenzia nu există");
+
+  const existing = await prisma.reviewLike.findUnique({ where: { reviewId_userId: { reviewId, userId } } });
+  let liked: boolean;
+  if (existing) {
+    await prisma.reviewLike.delete({ where: { id: existing.id } });
+    liked = false;
+  } else {
+    try {
+      await prisma.reviewLike.create({ data: { reviewId, userId } });
+    } catch (e: unknown) {
+      if (!(e && typeof e === "object" && "code" in e && (e as { code?: string }).code === "P2002")) throw e;
+    }
+    liked = true;
+  }
+
+  const count = await prisma.reviewLike.count({ where: { reviewId } });
+  revalidatePath(`/movie/${review.movieId}`);
+  return { liked, count };
 }
 
 // ===== Admin =====

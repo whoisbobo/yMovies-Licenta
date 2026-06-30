@@ -23,6 +23,7 @@ const likeLimiter = makeLimiter(20, "1 m");
 const deleteLimiter = makeLimiter(10, "1 m");
 const profileLimiter = makeLimiter(10, "1 m");
 const followLimiter = makeLimiter(30, "1 m");
+const commentLimiter = makeLimiter(15, "1 m");
 // Mai restrictiv: fiecare apel creează un Customer/Checkout Session la Stripe
 const checkoutLimiter = makeLimiter(5, "1 m");
 
@@ -47,4 +48,5 @@ export const limitLike = (userId: string) => enforce(likeLimiter, userId, "like"
 export const limitDelete = (userId: string) => enforce(deleteLimiter, userId, "delete");
 export const limitProfile = (userId: string) => enforce(profileLimiter, userId, "profile");
 export const limitFollow = (userId: string) => enforce(followLimiter, userId, "follow");
+export const limitComment = (userId: string) => enforce(commentLimiter, userId, "comment");
 export const limitCheckout = (userId: string) => enforce(checkoutLimiter, userId, "checkout");
