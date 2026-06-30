@@ -2,8 +2,10 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { ClerkProvider } from "@clerk/nextjs";
+import { auth } from "@clerk/nextjs/server";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getMessages } from "next-intl/server";
+import { prisma } from "../lib/prisma";
 import Navbar from "../components/Navbar"; // <--- Importul noului tău Navbar
 
 const geistSans = Geist({
@@ -29,12 +31,17 @@ export default async function RootLayout({
   const locale = await getLocale();
   const messages = await getMessages();
 
+  const { userId } = await auth();
+  const isAdmin = userId
+    ? (await prisma.user.findUnique({ where: { id: userId }, select: { role: true } }))?.role === "ADMIN"
+    : false;
+
   return (
     <ClerkProvider>
       <html lang={locale} className={`${geistSans.variable} ${geistMono.variable} h-full`}>
         <body className="min-h-full bg-[#141414] text-white flex flex-col">
           <NextIntlClientProvider locale={locale} messages={messages}>
-            <Navbar /> {/* <--- Acum Navbar-ul va sta aici nemișcat */}
+            <Navbar isAdmin={isAdmin} /> {/* <--- Acum Navbar-ul va sta aici nemișcat */}
             {children}
           </NextIntlClientProvider>
         </body>

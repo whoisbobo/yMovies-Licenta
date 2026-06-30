@@ -598,6 +598,44 @@ export async function toggleLike(movieIdRaw: number, movieTitleRaw: string, medi
   revalidatePath("/watchlist");
 }
 
+// ===== Admin =====
+// Verifică server-side că apelantul e ADMIN (gardă pentru toate acțiunile de admin).
+async function assertAdmin(): Promise<string> {
+  const { userId } = await auth();
+  if (!userId) throw new Error("Neautorizat");
+  const me = await prisma.user.findUnique({ where: { id: userId }, select: { role: true } });
+  if (me?.role !== "ADMIN") throw new Error("Acces interzis");
+  return userId;
+}
+
+export async function setUserRole(targetUserId: string, roleRaw: string) {
+  const adminId = await assertAdmin();
+  const role = z.enum(["USER", "ADMIN"]).parse(roleRaw);
+  const target = z.string().trim().min(1).parse(targetUserId);
+  // Nu te poți retrograda singur (ar bloca accesul la panou).
+  if (target === adminId && role !== "ADMIN") throw new Error("Nu te poți retrograda pe tine însuți");
+  await prisma.user.update({ where: { id: target }, data: { role } });
+  revalidatePath("/admin");
+}
+
+export async function setUserPremium(targetUserId: string, isPremiumRaw: boolean) {
+  await assertAdmin();
+  const target = z.string().trim().min(1).parse(targetUserId);
+  const isPremium = z.boolean().parse(isPremiumRaw);
+  await prisma.user.update({ where: { id: target }, data: { isPremium } });
+  revalidatePath("/admin");
+}
+
+export async function adminDeleteReview(reviewIdRaw: number) {
+  await assertAdmin();
+  const reviewId = z.coerce.number().int().positive().parse(reviewIdRaw);
+  const review = await prisma.review.findUnique({ where: { id: reviewId }, select: { movieId: true } });
+  await prisma.review.deleteMany({ where: { id: reviewId } });
+  if (review) revalidatePath(`/movie/${review.movieId}`);
+  revalidatePath("/admin");
+  revalidatePath("/reviews");
+}
+
 async function getOrigin(): Promise<string> {
   const headersList = await headers();
   const host = headersList.get("host");
