@@ -6,15 +6,22 @@ import { revalidatePath } from "next/cache";
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { limitReview, limitWatchlist, limitDelete, limitCheckout } from "../lib/ratelimit";
-import { SUPPORTED_LOCALES } from "../lib/locale";
+import { limitReview, limitWatchlist, limitDelete, limitCheckout, limitWatched, limitLike, limitFavorite, limitProfile, limitFollow } from "../lib/ratelimit";
+import { SUPPORTED_LOCALES, toTmdbLang } from "../lib/locale";
 import { getStripe } from "../lib/stripe";
+import { FAVORITE_LIMIT, MOVIE_GENRES, FAVORITE_GENRES_LIMIT } from "../lib/constants";
+import { getLocale } from "next-intl/server";
 
 const reviewSchema = z.object({
   movieId: z.coerce.number().int().positive(),
   mediaType: z.enum(["movie", "tv"]),
-  rating: z.coerce.number().int().min(1).max(10),
-  comment: z.string().max(2000).optional().default(""),
+  comment: z.string().trim().min(1).max(2000),
+});
+
+const ratingValueSchema = z.object({
+  movieId: z.coerce.number().int().positive(),
+  mediaType: z.enum(["movie", "tv"]),
+  value: z.coerce.number().int().min(1).max(10),
 });
 
 const watchlistSchema = z.object({
@@ -71,7 +78,6 @@ export async function submitReview(formData: FormData) {
   const parsed = reviewSchema.safeParse({
     movieId: formData.get("movieId"),
     mediaType: formData.get("mediaType") || "movie",
-    rating: formData.get("rating"),
     comment: formData.get("comment") ?? "",
   });
 
@@ -79,7 +85,7 @@ export async function submitReview(formData: FormData) {
     throw new Error(parsed.error.issues[0]?.message || "Date invalide");
   }
 
-  const { movieId, mediaType, rating, comment } = parsed.data;
+  const { movieId, mediaType, comment } = parsed.data;
 
   const actualMovieTitle = await fetchMovieTitle(movieId, mediaType);
 
@@ -96,16 +102,122 @@ export async function submitReview(formData: FormData) {
     }
   });
 
-  // UPSERT ATOMIC CU CHEIE COMPUSĂ — elimină fereastra de cursă la submit-uri simultane
+  // Recenzia = doar text. Nota e separată (vezi setRating).
   await prisma.review.upsert({
     where: {
       userId_movieId_mediaType: { userId, movieId, mediaType }
     },
-    update: { rating, comment },
-    create: { rating, comment, userId, movieId, mediaType }
+    update: { comment },
+    create: { comment, userId, movieId, mediaType }
   });
 
+  // A scrie o recenzie implică automat că l-ai văzut, și se scoate din watchlist.
+  await markWatchedAndDropFromWatchlist(userId, movieId, mediaType);
+
   revalidatePath(`/movie/${movieId}`);
+  revalidatePath("/reviews");
+  revalidatePath("/profile");
+  revalidatePath("/watched");
+  revalidatePath("/watchlist");
+}
+
+// Notare independentă de recenzie — scrie în modelul Rating, separat.
+export async function setRating(movieIdRaw: number, mediaTypeRaw: string, movieTitleRaw: string, valueRaw: number) {
+  const { userId } = await auth();
+  if (!userId) throw new Error("Neautorizat");
+
+  await limitReview(userId);
+
+  const parsed = ratingValueSchema.safeParse({ movieId: movieIdRaw, mediaType: mediaTypeRaw, value: valueRaw });
+  if (!parsed.success) throw new Error(parsed.error.issues[0]?.message || "Date invalide");
+
+  const { movieId, mediaType, value } = parsed.data;
+
+  await ensureUserExists(userId);
+
+  const title = (movieTitleRaw && String(movieTitleRaw).trim()) || (await fetchMovieTitle(movieId, mediaType));
+
+  await prisma.movie.upsert({
+    where: { id_mediaType: { id: movieId, mediaType } },
+    update: {},
+    create: { id: movieId, mediaType, title },
+  });
+
+  await prisma.rating.upsert({
+    where: { userId_movieId_mediaType: { userId, movieId, mediaType } },
+    update: { value },
+    create: { userId, movieId, mediaType, value },
+  });
+
+  // Notarea implică automat că l-ai văzut (ca pe Letterboxd) — intră în Films,
+  // și se scoate din watchlist (nu mai e "de văzut").
+  await markWatchedAndDropFromWatchlist(userId, movieId, mediaType);
+
+  revalidatePath(`/movie/${movieId}`);
+  revalidatePath("/watched");
+  revalidatePath("/watchlist");
+  revalidatePath("/profile");
+  revalidatePath("/reviews");
+}
+
+export async function removeRating(movieIdRaw: number, mediaTypeRaw: string) {
+  const { userId } = await auth();
+  if (!userId) throw new Error("Neautorizat");
+
+  await limitReview(userId);
+
+  const movieId = z.coerce.number().int().positive().parse(movieIdRaw);
+  const mediaType = z.enum(["movie", "tv"]).parse(mediaTypeRaw);
+
+  await prisma.rating.deleteMany({ where: { userId, movieId, mediaType } });
+
+  revalidatePath(`/movie/${movieId}`);
+  revalidatePath("/watched");
+  revalidatePath("/profile");
+  revalidatePath("/reviews");
+}
+
+// Urmărește / nu mai urmări un alt utilizator. Întoarce starea nouă (true = urmărit).
+export async function toggleFollow(targetUserId: string): Promise<boolean> {
+  const { userId } = await auth();
+  if (!userId) throw new Error("Neautorizat");
+
+  await limitFollow(userId);
+
+  const parsedTarget = z.string().trim().min(1).safeParse(targetUserId);
+  if (!parsedTarget.success) throw new Error("Utilizator invalid");
+  const followingId = parsedTarget.data;
+
+  if (followingId === userId) throw new Error("Nu te poți urmări pe tine însuți");
+
+  await ensureUserExists(userId);
+
+  const target = await prisma.user.findUnique({ where: { id: followingId }, select: { id: true, username: true } });
+  if (!target) throw new Error("Utilizatorul nu există");
+
+  const existing = await prisma.follow.findUnique({
+    where: { followerId_followingId: { followerId: userId, followingId } },
+  });
+
+  let nowFollowing: boolean;
+  if (existing) {
+    await prisma.follow.delete({ where: { id: existing.id } });
+    nowFollowing = false;
+  } else {
+    try {
+      await prisma.follow.create({ data: { followerId: userId, followingId } });
+    } catch (e: unknown) {
+      // Ignoră cursa de dublu-click (P2002 = unique constraint)
+      if (!(e && typeof e === "object" && "code" in e && (e as { code?: string }).code === "P2002")) throw e;
+    }
+    nowFollowing = true;
+  }
+
+  revalidatePath("/profile");
+  revalidatePath("/users");
+  revalidatePath(`/users/${target.username}`);
+
+  return nowFollowing;
 }
 
 export async function deleteReview(reviewIdRaw: number) {
@@ -150,57 +262,337 @@ export async function deleteReview(reviewIdRaw: number) {
   revalidatePath("/reviews");
 }
 
+// Marchează un film ca văzut și îl scoate din watchlist (nu mai e "de văzut").
+// Folosit oriunde un film devine văzut: buton Watched, notă, recenzie, like.
+async function markWatchedAndDropFromWatchlist(userId: string, movieId: number, mediaType: "movie" | "tv") {
+  await prisma.watched.upsert({
+    where: { userId_movieId_mediaType: { userId, movieId, mediaType } },
+    update: {},
+    create: { userId, movieId, mediaType },
+  });
+  await prisma.watchlistItem.deleteMany({ where: { userId, movieId, mediaType } });
+}
+
 export async function toggleWatchlist(movieIdRaw: number, movieTitleRaw: string, mediaTypeRaw: string = "movie") {
   const { userId } = await auth();
   if (!userId) throw new Error("Neautorizat");
 
   await limitWatchlist(userId);
 
-  const parsed = watchlistSchema.safeParse({
-    movieId: movieIdRaw,
-    movieTitle: movieTitleRaw,
-    mediaType: mediaTypeRaw,
-  });
-
-  if (!parsed.success) {
-    throw new Error(parsed.error.issues[0]?.message || "Date invalide");
-  }
-
+  const parsed = watchlistSchema.safeParse({ movieId: movieIdRaw, movieTitle: movieTitleRaw, mediaType: mediaTypeRaw });
+  if (!parsed.success) throw new Error(parsed.error.issues[0]?.message || "Date invalide");
   const { movieId, movieTitle, mediaType } = parsed.data;
 
   await ensureUserExists(userId);
 
-  // VERIFICARE CU CHEIE COMPUSĂ
-  const existingItem = await prisma.watchlistItem.findUnique({
-    where: { userId_movieId_mediaType: { userId, movieId, mediaType } },
-  });
-
-  if (existingItem) {
-    await prisma.watchlistItem.delete({ where: { id: existingItem.id } });
+  const existing = await prisma.watchlistItem.findUnique({ where: { userId_movieId_mediaType: { userId, movieId, mediaType } } });
+  if (existing) {
+    await prisma.watchlistItem.delete({ where: { id: existing.id } });
   } else {
-    // UPSERT CU CHEIE COMPUSĂ
-    await prisma.movie.upsert({
-      where: { id_mediaType: { id: movieId, mediaType: mediaType } },
-      update: {},
-      create: {
-        id: movieId,
-        mediaType: mediaType,
-        title: movieTitle,
-      },
-    });
-
-    try {
-      await prisma.watchlistItem.create({
-        data: { userId, movieId, mediaType },
-      });
-    } catch (error: unknown) {
-      const code = (error as { code?: string })?.code;
-      if (code !== "P2002") throw error;
-      // Deja existent (cerere dublă/simultană) — ignorăm
-    }
+    // Nu adăugăm în watchlist un film deja văzut — nu mai e "de văzut".
+    const watched = await prisma.watched.findUnique({ where: { userId_movieId_mediaType: { userId, movieId, mediaType } } });
+    if (watched) throw new Error("Filmul este deja marcat ca văzut");
+    await prisma.movie.upsert({ where: { id_mediaType: { id: movieId, mediaType } }, update: {}, create: { id: movieId, mediaType, title: movieTitle } });
+    await prisma.watchlistItem.create({ data: { userId, movieId, mediaType } });
   }
 
   revalidatePath(`/movie/${movieId}`);
+  revalidatePath("/watchlist");
+}
+
+const favoriteSlotSchema = z.object({
+  position: z.coerce.number().int().min(0).max(FAVORITE_LIMIT - 1),
+  movieId: z.coerce.number().int().positive(),
+  movieTitle: z.string().min(1).max(500),
+  mediaType: z.enum(["movie", "tv"]),
+});
+
+export async function setFavoriteSlot(
+  positionRaw: number,
+  movieIdRaw: number,
+  movieTitleRaw: string,
+  mediaTypeRaw: string
+) {
+  const { userId } = await auth();
+  if (!userId) throw new Error("Neautorizat");
+
+  await limitFavorite(userId);
+
+  const parsed = favoriteSlotSchema.safeParse({
+    position: positionRaw,
+    movieId: movieIdRaw,
+    movieTitle: movieTitleRaw,
+    mediaType: mediaTypeRaw,
+  });
+  if (!parsed.success) {
+    throw new Error(parsed.error.issues[0]?.message || "Date invalide");
+  }
+  const { position, movieId, movieTitle, mediaType } = parsed.data;
+
+  await ensureUserExists(userId);
+
+  await prisma.movie.upsert({
+    where: { id_mediaType: { id: movieId, mediaType } },
+    update: {},
+    create: { id: movieId, mediaType, title: movieTitle },
+  });
+
+  // Eliminăm orice favorite anterior din acest slot SAU al aceluiași film
+  // (dacă era deja pus în alt slot), ca să nu rămână duplicat/slot orfan.
+  await prisma.favorite.deleteMany({
+    where: { userId, OR: [{ position }, { movieId, mediaType }] },
+  });
+
+  await prisma.favorite.create({ data: { userId, movieId, mediaType, position } });
+
+  revalidatePath("/profile");
+  revalidatePath("/profile/edit");
+}
+
+export async function removeFavoriteSlot(positionRaw: number) {
+  const { userId } = await auth();
+  if (!userId) throw new Error("Neautorizat");
+
+  await limitFavorite(userId);
+
+  const position = z.coerce.number().int().min(0).max(FAVORITE_LIMIT - 1).parse(positionRaw);
+
+  await prisma.favorite.deleteMany({ where: { userId, position } });
+
+  revalidatePath("/profile");
+  revalidatePath("/profile/edit");
+}
+
+const reorderSlotSchema = z
+  .object({
+    movieId: z.coerce.number().int().positive(),
+    mediaType: z.enum(["movie", "tv"]),
+    title: z.string().min(1).max(500),
+  })
+  .nullable();
+
+// Rescrie complet ordinea favoritelor (după drag & drop). Primește sloturile
+// în noua ordine (cu null pentru goale); recreează totul în tranzacție.
+export async function reorderFavorites(slotsRaw: unknown[]) {
+  const { userId } = await auth();
+  if (!userId) throw new Error("Neautorizat");
+
+  await limitFavorite(userId);
+
+  const slots = z.array(reorderSlotSchema).max(FAVORITE_LIMIT).parse(slotsRaw);
+
+  await ensureUserExists(userId);
+
+  await prisma.$transaction(async (tx) => {
+    await tx.favorite.deleteMany({ where: { userId } });
+    for (let i = 0; i < slots.length; i++) {
+      const s = slots[i];
+      if (!s) continue;
+      await tx.movie.upsert({
+        where: { id_mediaType: { id: s.movieId, mediaType: s.mediaType } },
+        update: {},
+        create: { id: s.movieId, mediaType: s.mediaType, title: s.title },
+      });
+      await tx.favorite.create({ data: { userId, movieId: s.movieId, mediaType: s.mediaType, position: i } });
+    }
+  });
+
+  revalidatePath("/profile");
+  revalidatePath("/profile/edit");
+}
+
+const profileDetailsSchema = z.object({
+  displayName: z.string().trim().max(50).transform((v) => (v.length === 0 ? null : v)),
+  bio: z.string().trim().max(500).transform((v) => (v.length === 0 ? null : v)),
+  location: z.string().trim().max(80).transform((v) => (v.length === 0 ? null : v)),
+  website: z
+    .string()
+    .trim()
+    .max(200)
+    .transform((v) => (v.length === 0 ? null : v))
+    .refine((v) => v === null || /^https?:\/\/.+\..+/.test(v), { message: "Website invalid (folosește http(s)://)" }),
+  favoriteGenres: z.array(z.enum(MOVIE_GENRES)).max(FAVORITE_GENRES_LIMIT),
+});
+
+export async function updateProfileDetails(
+  displayNameRaw: string,
+  bioRaw: string,
+  locationRaw: string,
+  websiteRaw: string,
+  favoriteGenresRaw: string[]
+) {
+  const { userId } = await auth();
+  if (!userId) throw new Error("Neautorizat");
+
+  await limitProfile(userId);
+
+  const parsed = profileDetailsSchema.safeParse({
+    displayName: displayNameRaw,
+    bio: bioRaw,
+    location: locationRaw,
+    website: websiteRaw,
+    favoriteGenres: favoriteGenresRaw,
+  });
+  if (!parsed.success) throw new Error(parsed.error.issues[0]?.message || "Date invalide");
+
+  await ensureUserExists(userId);
+  await prisma.user.update({
+    where: { id: userId },
+    data: {
+      displayName: parsed.data.displayName,
+      bio: parsed.data.bio,
+      location: parsed.data.location,
+      website: parsed.data.website,
+      favoriteGenres: parsed.data.favoriteGenres,
+    },
+  });
+
+  revalidatePath("/profile");
+  revalidatePath("/profile/edit");
+}
+
+const favoriteSearchSchema = z.string().trim().min(1).max(200);
+
+export type FavoriteSearchResult = {
+  id: number;
+  mediaType: "movie" | "tv";
+  title: string;
+  posterPath: string | null;
+  year: string | null;
+};
+
+export async function searchMoviesForFavorite(queryRaw: string): Promise<FavoriteSearchResult[]> {
+  const { userId } = await auth();
+  if (!userId) throw new Error("Neautorizat");
+
+  const parsed = favoriteSearchSchema.safeParse(queryRaw);
+  if (!parsed.success) return [];
+  const query = parsed.data;
+
+  const lang = await getLocale();
+  const tmdbLang = toTmdbLang(lang);
+
+  const res = await fetch(
+    `https://api.themoviedb.org/3/search/multi?api_key=${process.env.TMDB_API_KEY}&language=${encodeURIComponent(tmdbLang)}&query=${encodeURIComponent(query)}&page=1`,
+    { cache: "no-store" }
+  );
+  if (!res.ok) return [];
+
+  const data = await res.json();
+  return (data.results || [])
+    .filter((item: { media_type?: string }) => item.media_type === "movie" || item.media_type === "tv")
+    .slice(0, 8)
+    .map((item: { id: number; media_type: string; title?: string; name?: string; poster_path: string | null; release_date?: string; first_air_date?: string }) => ({
+      id: item.id,
+      mediaType: item.media_type as "movie" | "tv",
+      title: item.title || item.name || "—",
+      posterPath: item.poster_path,
+      year: (item.release_date || item.first_air_date || "").substring(0, 4) || null,
+    }));
+}
+
+// Sugestii live pentru search bar — public (merge și fără autentificare).
+export async function searchSuggestions(queryRaw: string): Promise<FavoriteSearchResult[]> {
+  const parsed = favoriteSearchSchema.safeParse(queryRaw);
+  if (!parsed.success) return [];
+  const query = parsed.data;
+
+  const lang = await getLocale();
+  const tmdbLang = toTmdbLang(lang);
+
+  const res = await fetch(
+    `https://api.themoviedb.org/3/search/multi?api_key=${process.env.TMDB_API_KEY}&language=${encodeURIComponent(tmdbLang)}&query=${encodeURIComponent(query)}&page=1`,
+    { cache: "no-store" }
+  );
+  if (!res.ok) return [];
+
+  const data = await res.json();
+  return (data.results || [])
+    .filter((item: { media_type?: string }) => item.media_type === "movie" || item.media_type === "tv")
+    .slice(0, 6)
+    .map((item: { id: number; media_type: string; title?: string; name?: string; poster_path: string | null; release_date?: string; first_air_date?: string }) => ({
+      id: item.id,
+      mediaType: item.media_type as "movie" | "tv",
+      title: item.title || item.name || "—",
+      posterPath: item.poster_path,
+      year: (item.release_date || item.first_air_date || "").substring(0, 4) || null,
+    }));
+}
+
+export async function toggleWatched(movieIdRaw: number, movieTitleRaw: string, mediaTypeRaw: string = "movie") {
+  const { userId } = await auth();
+  if (!userId) throw new Error("Neautorizat");
+
+  await limitWatched(userId);
+
+  const parsed = watchlistSchema.safeParse({ movieId: movieIdRaw, movieTitle: movieTitleRaw, mediaType: mediaTypeRaw });
+  if (!parsed.success) throw new Error(parsed.error.issues[0]?.message || "Date invalide");
+  const { movieId, movieTitle, mediaType } = parsed.data;
+
+  await ensureUserExists(userId);
+
+  const existing = await prisma.watched.findUnique({ where: { userId_movieId_mediaType: { userId, movieId, mediaType } } });
+  if (existing) {
+    await prisma.watched.delete({ where: { id: existing.id } });
+  } else {
+    await prisma.movie.upsert({ where: { id_mediaType: { id: movieId, mediaType } }, update: {}, create: { id: movieId, mediaType, title: movieTitle } });
+    // Marcarea ca văzut îl scoate și din watchlist.
+    await markWatchedAndDropFromWatchlist(userId, movieId, mediaType);
+  }
+
+  revalidatePath(`/movie/${movieId}`);
+  revalidatePath("/profile");
+  revalidatePath("/watched");
+  revalidatePath("/watchlist");
+}
+
+// De-marcare „văzut" care șterge și nota și recenzia (după confirmarea din pop-up).
+export async function unwatchWithCascade(movieIdRaw: number, mediaTypeRaw: string) {
+  const { userId } = await auth();
+  if (!userId) throw new Error("Neautorizat");
+
+  await limitWatched(userId);
+
+  const movieId = z.coerce.number().int().positive().parse(movieIdRaw);
+  const mediaType = z.enum(["movie", "tv"]).parse(mediaTypeRaw);
+
+  await prisma.$transaction([
+    prisma.watched.deleteMany({ where: { userId, movieId, mediaType } }),
+    prisma.rating.deleteMany({ where: { userId, movieId, mediaType } }),
+    prisma.review.deleteMany({ where: { userId, movieId, mediaType } }),
+  ]);
+
+  revalidatePath(`/movie/${movieId}`);
+  revalidatePath("/profile");
+  revalidatePath("/watched");
+  revalidatePath("/reviews");
+}
+
+export async function toggleLike(movieIdRaw: number, movieTitleRaw: string, mediaTypeRaw: string = "movie") {
+  const { userId } = await auth();
+  if (!userId) throw new Error("Neautorizat");
+
+  await limitLike(userId);
+
+  const parsed = watchlistSchema.safeParse({ movieId: movieIdRaw, movieTitle: movieTitleRaw, mediaType: mediaTypeRaw });
+  if (!parsed.success) throw new Error(parsed.error.issues[0]?.message || "Date invalide");
+  const { movieId, movieTitle, mediaType } = parsed.data;
+
+  await ensureUserExists(userId);
+
+  const existing = await prisma.like.findUnique({ where: { userId_movieId_mediaType: { userId, movieId, mediaType } } });
+  if (existing) {
+    await prisma.like.delete({ where: { id: existing.id } });
+  } else {
+    await prisma.movie.upsert({ where: { id_mediaType: { id: movieId, mediaType } }, update: {}, create: { id: movieId, mediaType, title: movieTitle } });
+    await prisma.like.create({ data: { userId, movieId, mediaType } });
+    // Un like presupune că l-ai văzut → marchează văzut + scoate din watchlist.
+    await markWatchedAndDropFromWatchlist(userId, movieId, mediaType);
+  }
+
+  revalidatePath(`/movie/${movieId}`);
+  revalidatePath("/profile");
+  revalidatePath("/watched");
   revalidatePath("/watchlist");
 }
 
