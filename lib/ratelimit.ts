@@ -17,7 +17,12 @@ function makeLimiter(requests: number, window: `${number} ${"s" | "m" | "h"}`) {
 // Limite distincte per acțiune, identificate după userId Clerk
 const reviewLimiter = makeLimiter(5, "1 m");
 const watchlistLimiter = makeLimiter(20, "1 m");
+const favoriteLimiter = makeLimiter(20, "1 m");
+const watchedLimiter = makeLimiter(20, "1 m");
+const likeLimiter = makeLimiter(20, "1 m");
 const deleteLimiter = makeLimiter(10, "1 m");
+const profileLimiter = makeLimiter(10, "1 m");
+const followLimiter = makeLimiter(30, "1 m");
 // Mai restrictiv: fiecare apel creează un Customer/Checkout Session la Stripe
 const checkoutLimiter = makeLimiter(5, "1 m");
 
@@ -36,5 +41,10 @@ async function enforce(
 
 export const limitReview = (userId: string) => enforce(reviewLimiter, userId, "review");
 export const limitWatchlist = (userId: string) => enforce(watchlistLimiter, userId, "watchlist");
+export const limitFavorite = (userId: string) => enforce(favoriteLimiter, userId, "favorite");
+export const limitWatched = (userId: string) => enforce(watchedLimiter, userId, "watched");
+export const limitLike = (userId: string) => enforce(likeLimiter, userId, "like");
 export const limitDelete = (userId: string) => enforce(deleteLimiter, userId, "delete");
+export const limitProfile = (userId: string) => enforce(profileLimiter, userId, "profile");
+export const limitFollow = (userId: string) => enforce(followLimiter, userId, "follow");
 export const limitCheckout = (userId: string) => enforce(checkoutLimiter, userId, "checkout");
