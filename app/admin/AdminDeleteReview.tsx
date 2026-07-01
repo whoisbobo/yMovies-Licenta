@@ -3,15 +3,18 @@
 import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { adminDeleteReview } from "../actions";
+import ConfirmDialog from "../../components/ConfirmDialog";
 
 export default function AdminDeleteReview({ reviewId }: { reviewId: number }) {
   const t = useTranslations("Admin");
+  const tCommon = useTranslations("Common");
   const [pending, setPending] = useState(false);
   const [deleted, setDeleted] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [confirming, setConfirming] = useState(false);
 
-  const handleDelete = async () => {
-    if (!confirm(t("confirmDelete"))) return;
+  const doDelete = async () => {
+    setConfirming(false);
     setPending(true);
     setError(null);
     try {
@@ -30,13 +33,23 @@ export default function AdminDeleteReview({ reviewId }: { reviewId: number }) {
     <div className="flex flex-col items-end gap-1">
       <button
         type="button"
-        onClick={handleDelete}
+        onClick={() => setConfirming(true)}
         disabled={pending}
         className="px-2.5 py-1 rounded text-xs font-medium border border-red-500/40 text-red-400 hover:bg-red-500/10 disabled:opacity-50 transition-colors"
       >
         {t("deleteLabel")}
       </button>
       {error && <p className="text-[11px] text-red-400">{error}</p>}
+
+      <ConfirmDialog
+        open={confirming}
+        message={t("confirmDelete")}
+        confirmLabel={t("deleteLabel")}
+        cancelLabel={tCommon("cancel")}
+        onConfirm={doDelete}
+        onCancel={() => setConfirming(false)}
+        danger
+      />
     </div>
   );
 }
