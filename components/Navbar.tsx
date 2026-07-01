@@ -12,6 +12,7 @@ export default function Navbar({ isAdmin = false, unreadNotifications = 0 }: { i
   const [searchQuery, setSearchQuery] = useState("");
   const [suggestions, setSuggestions] = useState<FavoriteSearchResult[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
   const router = useRouter();
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const searchBoxRef = useRef<HTMLDivElement>(null);
@@ -65,10 +66,25 @@ export default function Navbar({ isAdmin = false, unreadNotifications = 0 }: { i
 
   return (
     <header className="sticky top-0 z-50 bg-zinc-950/75 backdrop-blur-xl border-b border-white/10 shadow-lg shadow-black/20 px-6 py-3">
-      <div className="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-4">
+      <div className="max-w-7xl mx-auto">
+       <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
 
         {/* Partea Stângă: Logo & Link-uri */}
-        <div className="flex items-center gap-8 w-full sm:w-auto justify-between sm:justify-start">
+        <div className="flex items-center gap-3 md:gap-8 w-full sm:w-auto justify-start">
+          {/* Buton hamburger — doar pe mobil */}
+          <button
+            type="button"
+            onClick={() => setMobileOpen((o) => !o)}
+            aria-label="Menu"
+            className="md:hidden flex items-center justify-center w-9 h-9 -ml-1 rounded-full text-zinc-300 hover:text-white hover:bg-white/5 transition-colors"
+          >
+            {mobileOpen ? (
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+            ) : (
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" /></svg>
+            )}
+          </button>
+
           <Link
             href="/"
             className="inline-block text-2xl font-extrabold pr-1 bg-gradient-to-r from-yellow-400 to-amber-500 bg-clip-text text-transparent"
@@ -265,6 +281,23 @@ export default function Navbar({ isAdmin = false, unreadNotifications = 0 }: { i
           )}
         </div>
 
+       </div>
+
+       {/* Panou de navigare pe mobil */}
+       {mobileOpen && (
+         <nav className="md:hidden max-w-7xl mx-auto mt-3 pt-3 border-t border-white/10 flex flex-col gap-0.5 text-zinc-300 font-medium">
+           <Link href="/movies" onClick={() => setMobileOpen(false)} className="px-3 py-2.5 rounded-lg hover:text-white hover:bg-white/5 transition-colors">{t("movies")}</Link>
+           <Link href="/tv" onClick={() => setMobileOpen(false)} className="px-3 py-2.5 rounded-lg hover:text-white hover:bg-white/5 transition-colors">{t("tv")}</Link>
+           <Link href="/categories" onClick={() => setMobileOpen(false)} className="px-3 py-2.5 rounded-lg hover:text-white hover:bg-white/5 transition-colors">{t("categories")}</Link>
+           {userId && (
+             <>
+               <Link href="/users" onClick={() => setMobileOpen(false)} className="px-3 py-2.5 rounded-lg hover:text-white hover:bg-white/5 transition-colors">{t("members")}</Link>
+               <Link href="/recommendations" onClick={() => setMobileOpen(false)} className="px-3 py-2.5 rounded-lg hover:text-white hover:bg-white/5 transition-colors">{t("recommendations")}</Link>
+               <Link href="/premium" onClick={() => setMobileOpen(false)} className="px-3 py-2.5 rounded-lg text-yellow-500 font-semibold hover:bg-white/5 transition-colors">{t("premium")}</Link>
+             </>
+           )}
+         </nav>
+       )}
       </div>
     </header>
   );
