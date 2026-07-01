@@ -231,6 +231,7 @@
     "notFound": "User not found.",
     "statLiked": "{count} liked movies/shows",
     "favoritesTitle": "Favorite Films",
+    "premiumBadge": "Premium",
     "editProfile": "Edit Profile",
     "doneEditing": "Done",
     "recentActivityTitle": "Recent Activity",
