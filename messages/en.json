@@ -29,7 +29,12 @@
     "popularMovies": "Popular Movies",
     "searchResultsFor": "Search results for: \"{query}\"",
     "categoryLabel": "Category: {name}",
-    "noContent": "No content found on this page."
+    "noContent": "No content found on this page.",
+    "heroSubtitle": "Discover films, keep track of what you've watched, and see what the community is reviewing.",
+    "seeAll": "See all",
+    "recentActivityFeed": "Recent reviews from the community",
+    "feedEmpty": "No reviews yet. Be the first to leave one!",
+    "feedSpoiler": "Contains spoilers"
   },
   "Tv": {
     "popularTv": "Popular TV Shows"

@@ -123,6 +123,7 @@ export async function submitReview(formData: FormData) {
   revalidatePath("/profile");
   revalidatePath("/watched");
   revalidatePath("/watchlist");
+  revalidatePath("/"); // feed-ul global de recenzii de pe pagina principală
 }
 
 // Notare independentă de recenzie — scrie în modelul Rating, separat.

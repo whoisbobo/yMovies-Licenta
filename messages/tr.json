@@ -29,7 +29,12 @@
     "popularMovies": "Popüler Filmler",
     "searchResultsFor": "Arama sonuçları: \"{query}\"",
     "categoryLabel": "Kategori: {name}",
-    "noContent": "Bu sayfada içerik bulunamadı."
+    "noContent": "Bu sayfada içerik bulunamadı.",
+    "heroSubtitle": "Filmleri keşfet, izlediklerini takip et ve topluluğun ne yorumladığını gör.",
+    "seeAll": "Tümünü gör",
+    "recentActivityFeed": "Topluluktan son yorumlar",
+    "feedEmpty": "Henüz yorum yok. İlk yorumu sen yap!",
+    "feedSpoiler": "Spoiler içeriyor"
   },
   "Tv": {
     "popularTv": "Popüler Diziler"

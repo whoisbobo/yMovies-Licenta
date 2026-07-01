@@ -41,7 +41,7 @@ export default async function CategoriesPage() {
           const gradient = gradients[index % gradients.length];
           return (
             <Link
-              href={`/?genre=${genre.id}&name=${encodeURIComponent(genre.name)}`}
+              href={`/movies?genre=${genre.id}&name=${encodeURIComponent(genre.name)}`}
               key={genre.id}
               className={`bg-gradient-to-br ${gradient} h-28 rounded-xl p-5 flex items-end justify-start font-bold text-base shadow-md border border-zinc-800/50 hover:scale-105 transition-transform duration-200 cursor-pointer group`}
             >

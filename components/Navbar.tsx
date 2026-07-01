@@ -25,7 +25,7 @@ export default function Navbar({ isAdmin = false, unreadNotifications = 0 }: { i
     e.preventDefault();
     if (searchQuery.trim()) {
       setShowSuggestions(false);
-      router.push(`/?search=${encodeURIComponent(searchQuery.trim())}`);
+      router.push(`/movies?search=${encodeURIComponent(searchQuery.trim())}`);
     }
   };
 
@@ -77,7 +77,7 @@ export default function Navbar({ isAdmin = false, unreadNotifications = 0 }: { i
           </Link>
 
           <div className="hidden md:flex gap-1 text-zinc-400 font-medium items-center">
-            <Link href="/" className="px-3 py-1.5 rounded-full hover:text-white hover:bg-white/5 transition-colors">{t("movies")}</Link>
+            <Link href="/movies" className="px-3 py-1.5 rounded-full hover:text-white hover:bg-white/5 transition-colors">{t("movies")}</Link>
             <Link href="/tv" className="px-3 py-1.5 rounded-full hover:text-white hover:bg-white/5 transition-colors">{t("tv")}</Link>
             <Link href="/categories" className="px-3 py-1.5 rounded-full hover:text-white hover:bg-white/5 transition-colors">{t("categories")}</Link>
             {userId && (
