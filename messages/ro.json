@@ -62,7 +62,8 @@
   },
   "ReviewForm": {
     "alertNoRating": "Te rog să acorzi o notă în stele!",
-    "alertSuccess": "Recenzia a fost salvată cu succes în baza ta de date!",
+    "alertSuccess": "Recenzia ta a fost publicată!",
+    "submitError": "Ceva n-a mers. Încearcă din nou.",
     "yourRating": "Nota ta:",
     "clearRating": "Șterge nota",
     "ratingScore": "Nota: {rating} / 10",

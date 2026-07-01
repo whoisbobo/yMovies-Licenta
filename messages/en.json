@@ -62,7 +62,8 @@
   },
   "ReviewForm": {
     "alertNoRating": "Please provide a star rating!",
-    "alertSuccess": "The review has been successfully saved to the database!",
+    "alertSuccess": "Your review has been posted!",
+    "submitError": "Something went wrong. Please try again.",
     "yourRating": "Your rating:",
     "clearRating": "Clear rating",
     "ratingScore": "Score: {rating} / 10",

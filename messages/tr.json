@@ -62,7 +62,8 @@
   },
   "ReviewForm": {
     "alertNoRating": "Lütfen yıldızlı bir puan verin!",
-    "alertSuccess": "Yorumunuz veritabanına başarıyla kaydedildi!",
+    "alertSuccess": "Yorumun paylaşıldı!",
+    "submitError": "Bir şeyler ters gitti. Lütfen tekrar dene.",
     "yourRating": "Puanınız:",
     "clearRating": "Puanı temizle",
     "ratingScore": "Puan: {rating} / 10",
