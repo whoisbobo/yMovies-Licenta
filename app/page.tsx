@@ -7,7 +7,7 @@ import { getTranslations, getLocale } from "next-intl/server";
 import { getWithFallback, fetchTmdbWithFallback, TTL, getCachedMovieDetails } from "../lib/tmdbCache";
 import { toTmdbLang } from "../lib/locale";
 
-const POPULAR_COUNT = 12;
+const POPULAR_COUNT = 6;
 const FEED_COUNT = 12;
 
 // Notă 1..10 → "★★★½".
@@ -55,6 +55,22 @@ export default async function Home() {
   );
   const popularMovies = (popular || []).slice(0, POPULAR_COUNT);
 
+  // Seriale populare (cache-uit, aceeași cheie ca pagina /tv).
+  const popularTvRaw = await getWithFallback(
+    `discover:tv-popular:1:${tmdbLang}`,
+    async () => {
+      const res = await fetchTmdbWithFallback(
+        `/discover/tv?api_key=${process.env.TMDB_API_KEY}&sort_by=popularity.desc&vote_count.gte=200&page=1`,
+        tmdbLang
+      );
+      if (!res.ok) throw new Error("TMDB request failed");
+      const data = await res.json();
+      return data.results || [];
+    },
+    TTL.POPULAR
+  );
+  const popularTv = (popularTvRaw || []).slice(0, POPULAR_COUNT);
+
   // Feed global: cele mai recente recenzii ale tuturor userilor.
   const recentReviews = await prisma.review.findMany({
     where: { comment: { not: null } },
@@ -86,14 +102,14 @@ export default async function Home() {
     <main className="p-8 max-w-7xl mx-auto flex-1 w-full">
       {/* Hero */}
       <div className="text-center py-8 mb-4">
-        <h1 className="text-4xl sm:text-5xl font-extrabold bg-gradient-to-r from-yellow-400 to-amber-500 bg-clip-text text-transparent inline-block pr-1">
+        <h1 className="text-4xl sm:text-5xl font-extrabold leading-[1.2] bg-gradient-to-r from-yellow-400 to-amber-500 bg-clip-text text-transparent inline-block px-1 pb-2">
           yMovies
         </h1>
         <p className="text-zinc-400 mt-3 max-w-xl mx-auto">{t("heroSubtitle")}</p>
       </div>
 
       {/* Filme populare */}
-      <section className="mb-14">
+      <section className="mb-12">
         <div className="flex items-center justify-between border-b border-zinc-800 pb-2 mb-5">
           <h2 className="text-sm font-bold uppercase tracking-wide text-zinc-400">{t("popularMovies")}</h2>
           <Link href="/movies" className="text-xs text-yellow-500 hover:text-yellow-400 font-medium">
@@ -111,6 +127,32 @@ export default async function Home() {
                 )}
                 <div className="absolute top-2 right-2 bg-zinc-900/90 text-yellow-500 px-2 py-0.5 rounded text-xs font-bold shadow">
                   ★ {movie.vote_average?.toFixed(1) || "0.0"}
+                </div>
+              </div>
+            </Link>
+          ))}
+        </div>
+      </section>
+
+      {/* Seriale populare */}
+      <section className="mb-14">
+        <div className="flex items-center justify-between border-b border-zinc-800 pb-2 mb-5">
+          <h2 className="text-sm font-bold uppercase tracking-wide text-zinc-400">{t("popularTv")}</h2>
+          <Link href="/tv" className="text-xs text-yellow-500 hover:text-yellow-400 font-medium">
+            {t("seeAll")}
+          </Link>
+        </div>
+        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-4">
+          {popularTv.map((show: any) => (
+            <Link href={`/movie/${show.id}?type=tv`} key={show.id} className="group flex flex-col gap-2" title={show.name}>
+              <div className="relative overflow-hidden rounded-lg shadow-md transition-transform group-hover:scale-105 aspect-[2/3]">
+                {show.poster_path ? (
+                  <img src={`https://image.tmdb.org/t/p/w500${show.poster_path}`} alt={show.name} className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center bg-zinc-800 text-zinc-500 text-xs">{tCommon("noPoster")}</div>
+                )}
+                <div className="absolute top-2 right-2 bg-zinc-900/90 text-yellow-500 px-2 py-0.5 rounded text-xs font-bold shadow">
+                  ★ {show.vote_average?.toFixed(1) || "0.0"}
                 </div>
               </div>
             </Link>
