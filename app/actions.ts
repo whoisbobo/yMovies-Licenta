@@ -45,8 +45,10 @@ async function ensureUserExists(userId: string) {
       await prisma.user.create({
         data: {
           id: userId,
-          email: clerkUser.emailAddresses[0]?.emailAddress || "",
-          username: clerkUser.username || `user_${userId.slice(0, 5)}`,
+          // Fallback-uri UNICE per user (ID-urile Clerk încep toate cu "user_",
+          // deci un slice fix ar coliziona pe constraint-urile unice).
+          email: clerkUser.emailAddresses[0]?.emailAddress || `${userId}@no-email.local`,
+          username: clerkUser.username || `user_${userId.replace(/^user_/, "")}`,
           avatarUrl: clerkUser.imageUrl,
         }
       });
