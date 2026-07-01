@@ -17,15 +17,17 @@ export default function AdminUserControls({
   const [r, setR] = useState(role);
   const [p, setP] = useState(isPremium);
   const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const toggleRole = async () => {
     const next = r === "ADMIN" ? "USER" : "ADMIN";
     setPending(true);
+    setError(null);
     try {
       await setUserRole(userId, next);
       setR(next);
     } catch (e) {
-      alert(e instanceof Error ? e.message : "Eroare");
+      setError(e instanceof Error ? e.message : "Eroare");
     } finally {
       setPending(false);
     }
@@ -33,11 +35,12 @@ export default function AdminUserControls({
 
   const togglePremium = async () => {
     setPending(true);
+    setError(null);
     try {
       await setUserPremium(userId, !p);
       setP(!p);
     } catch (e) {
-      alert(e instanceof Error ? e.message : "Eroare");
+      setError(e instanceof Error ? e.message : "Eroare");
     } finally {
       setPending(false);
     }
@@ -45,6 +48,7 @@ export default function AdminUserControls({
 
   return (
     <div className="flex flex-wrap gap-2 justify-end">
+      {error && <p className="w-full text-right text-[11px] text-red-400">{error}</p>}
       <button
         type="button"
         onClick={toggleRole}

@@ -32,6 +32,7 @@ export default function ReviewSocial({
   const [open, setOpen] = useState(false);
   const [text, setText] = useState("");
   const [pending, setPending] = useState(false);
+  const [commentError, setCommentError] = useState(false);
 
   const handleLike = async () => {
     if (!isLoggedIn) return;
@@ -53,12 +54,13 @@ export default function ReviewSocial({
     const value = text.trim();
     if (!value || pending) return;
     setPending(true);
+    setCommentError(false);
     try {
       const created = await addReviewComment(reviewId, value);
       setComments((prev) => [...prev, created]);
       setText("");
-    } catch (e) {
-      alert(e instanceof Error ? e.message : "Eroare");
+    } catch {
+      setCommentError(true);
     } finally {
       setPending(false);
     }
@@ -139,24 +141,27 @@ export default function ReviewSocial({
           )}
 
           {isLoggedIn ? (
-            <div className="flex gap-2 pt-1">
-              <input
-                type="text"
-                value={text}
-                onChange={(e) => setText(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleAdd()}
-                maxLength={1000}
-                placeholder={t("addPlaceholder")}
-                className="flex-1 bg-[#141414] text-white border border-zinc-700 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-yellow-500"
-              />
-              <button
-                type="button"
-                onClick={handleAdd}
-                disabled={pending || text.trim().length === 0}
-                className="px-3 py-1.5 rounded-lg bg-yellow-500 text-zinc-900 text-sm font-semibold disabled:opacity-40 hover:brightness-110 transition"
-              >
-                {t("post")}
-              </button>
+            <div className="pt-1">
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={text}
+                  onChange={(e) => setText(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleAdd()}
+                  maxLength={1000}
+                  placeholder={t("addPlaceholder")}
+                  className="flex-1 bg-[#141414] text-white border border-zinc-700 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-yellow-500"
+                />
+                <button
+                  type="button"
+                  onClick={handleAdd}
+                  disabled={pending || text.trim().length === 0}
+                  className="px-3 py-1.5 rounded-lg bg-yellow-500 text-zinc-900 text-sm font-semibold disabled:opacity-40 hover:brightness-110 transition"
+                >
+                  {t("post")}
+                </button>
+              </div>
+              {commentError && <p className="text-[11px] text-red-400 mt-1">{t("commentError")}</p>}
             </div>
           ) : (
             <p className="text-zinc-500 text-xs italic">{t("loginToComment")}</p>

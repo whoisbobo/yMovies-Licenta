@@ -92,7 +92,8 @@
     "addPlaceholder": "Bir yorum yaz...",
     "post": "Gönder",
     "deleteLabel": "Sil",
-    "loginToComment": "Yorum yapmak için giriş yap."
+    "loginToComment": "Yorum yapmak için giriş yap.",
+    "commentError": "Yorum gönderilemedi. Lütfen tekrar dene."
   },
   "DeleteButton": {
     "confirmDelete": "Bu yorumu silmek istediğinizden eminmisiniz?",

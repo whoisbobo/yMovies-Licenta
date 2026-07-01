@@ -92,7 +92,8 @@
     "addPlaceholder": "Scrie un comentariu...",
     "post": "Trimite",
     "deleteLabel": "Șterge",
-    "loginToComment": "Autentifică-te ca să comentezi."
+    "loginToComment": "Autentifică-te ca să comentezi.",
+    "commentError": "Comentariul n-a putut fi publicat. Încearcă din nou."
   },
   "DeleteButton": {
     "confirmDelete": "Sigur vrei să ștergi această recenzie?",
