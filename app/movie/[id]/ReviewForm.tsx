@@ -3,26 +3,28 @@
 import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { submitReview } from "../../../app/actions";
+import Toast from "../../../components/Toast";
 
 export default function ReviewForm({ movieId, movieTitle, mediaType }: { movieId: number, movieTitle: string, mediaType: string }) {
   const [loading, setLoading] = useState(false);
-  const [status, setStatus] = useState<"idle" | "success" | "error">("idle");
+  const [showError, setShowError] = useState(false);
+  const [toastKey, setToastKey] = useState(0);
   const t = useTranslations("ReviewForm");
+  const tCommon = useTranslations("Common");
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
     const form = e.currentTarget;
     setLoading(true);
-    setStatus("idle");
+    setShowError(false);
 
     try {
       await submitReview(new FormData(form));
       form.reset();
-      setStatus("success");
-      setTimeout(() => setStatus("idle"), 4000);
+      setToastKey((k) => k + 1); // afișează toast-ul „Salvat" jos-dreapta
     } catch {
-      setStatus("error");
+      setShowError(true);
     } finally {
       setLoading(false);
     }
@@ -63,18 +65,12 @@ export default function ReviewForm({ movieId, movieTitle, mediaType }: { movieId
           {loading ? t("saving") : t("submitButton")}
         </button>
 
-        {status === "success" && (
-          <span className="flex items-center gap-1.5 text-sm text-green-400">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-            </svg>
-            {t("alertSuccess")}
-          </span>
-        )}
-        {status === "error" && (
+        {showError && (
           <span className="text-sm text-red-400">{t("submitError")}</span>
         )}
       </div>
+
+      <Toast trigger={toastKey} message={tCommon("saved")} />
     </form>
   );
 }
