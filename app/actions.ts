@@ -6,7 +6,7 @@ import { revalidatePath } from "next/cache";
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { limitReview, limitWatchlist, limitDelete, limitCheckout, limitWatched, limitLike, limitFavorite, limitProfile, limitFollow, limitComment } from "../lib/ratelimit";
+import { limitReview, limitWatchlist, limitDelete, limitCheckout, limitWatched, limitLike, limitFavorite, limitProfile, limitFollow, limitComment, limitSearch } from "../lib/ratelimit";
 import { SUPPORTED_LOCALES, toTmdbLang } from "../lib/locale";
 import { getStripe } from "../lib/stripe";
 import { FAVORITE_LIMIT, MOVIE_GENRES, FAVORITE_GENRES_LIMIT } from "../lib/constants";
@@ -502,6 +502,19 @@ export async function searchSuggestions(queryRaw: string): Promise<FavoriteSearc
   const parsed = favoriteSearchSchema.safeParse(queryRaw);
   if (!parsed.success) return [];
   const query = parsed.data;
+
+  // Endpoint public → limităm după userId (dacă e logat) sau după IP, ca să nu poată fi spamat TMDB.
+  const { userId } = await auth();
+  let identifier = userId;
+  if (!identifier) {
+    const h = await headers();
+    identifier = h.get("x-forwarded-for")?.split(",")[0]?.trim() || h.get("x-real-ip") || "anon";
+  }
+  try {
+    await limitSearch(identifier);
+  } catch {
+    return []; // peste limită → răspuns gol, fără eroare vizibilă la scrierea în search
+  }
 
   const lang = await getLocale();
   const tmdbLang = toTmdbLang(lang);

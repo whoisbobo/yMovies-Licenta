@@ -26,6 +26,8 @@ const followLimiter = makeLimiter(30, "1 m");
 const commentLimiter = makeLimiter(15, "1 m");
 // Mai restrictiv: fiecare apel creează un Customer/Checkout Session la Stripe
 const checkoutLimiter = makeLimiter(5, "1 m");
+// Endpoint public de sugestii (lovește TMDB la fiecare apel) — cheie = userId sau IP
+const searchLimiter = makeLimiter(60, "1 m");
 
 async function enforce(
   limiter: Ratelimit | null,
@@ -50,3 +52,4 @@ export const limitProfile = (userId: string) => enforce(profileLimiter, userId, 
 export const limitFollow = (userId: string) => enforce(followLimiter, userId, "follow");
 export const limitComment = (userId: string) => enforce(commentLimiter, userId, "comment");
 export const limitCheckout = (userId: string) => enforce(checkoutLimiter, userId, "checkout");
+export const limitSearch = (identifier: string) => enforce(searchLimiter, identifier, "search");
