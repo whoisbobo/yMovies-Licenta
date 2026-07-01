@@ -6,6 +6,8 @@ import { homeSearchParamsSchema } from "../../lib/validation";
 import { getWithFallback, fetchTmdbWithFallback, TTL } from "../../lib/tmdbCache";
 import { toTmdbLang } from "../../lib/locale";
 import Pagination from "../../components/Pagination";
+import FilterDropdown from "../watched/FilterDropdown";
+import { getDiscoverSort, normalizeDiscoverSort, discoverSortOptions } from "../../lib/discoverSort";
 
 // TMDB ține taxonomii de genuri separate pentru filme și seriale (id-uri diferite,
 // unele genuri neavând echivalent direct). Maparea de mai jos permite ca o categorie
@@ -27,10 +29,12 @@ const MOVIE_TO_TV_GENRE: Record<string, number> = {
   "37": 37,      // Western
 };
 
-async function getMovies(query: string | undefined, genreId: string | undefined, page: number = 1, lang: string = "ro") {
+async function getMovies(query: string | undefined, genreId: string | undefined, sort: string, page: number = 1, lang: string = "ro") {
   const tmdbLang = toTmdbLang(lang);
+  const sortSpec = getDiscoverSort(sort);
 
   if (query) {
+    // Căutarea (search/multi) nu suportă sort_by — ignorăm sortarea aici.
     const cacheKey = `discover:search:${encodeURIComponent(query)}:${page}:${tmdbLang}`;
     const results = await getWithFallback(cacheKey, async () => {
       const res = await fetchTmdbWithFallback(
@@ -46,10 +50,10 @@ async function getMovies(query: string | undefined, genreId: string | undefined,
 
   if (genreId) {
     const tvGenreId = MOVIE_TO_TV_GENRE[genreId];
-    const cacheKey = `discover:genre:${genreId}:${page}:${tmdbLang}`;
+    const cacheKey = `discover:genre:${genreId}:${sort}:${page}:${tmdbLang}`;
     const results = await getWithFallback(cacheKey, async () => {
       const movieRes = await fetchTmdbWithFallback(
-        `/discover/movie?api_key=${process.env.TMDB_API_KEY}&with_genres=${encodeURIComponent(genreId)}&sort_by=popularity.desc&vote_count.gte=200&page=${page}`,
+        `/discover/movie?api_key=${process.env.TMDB_API_KEY}&with_genres=${encodeURIComponent(genreId)}&sort_by=${sortSpec.movie}&vote_count.gte=200&page=${page}`,
         tmdbLang
       );
       const movieData = movieRes.ok ? await movieRes.json() : { results: [] };
@@ -58,7 +62,7 @@ async function getMovies(query: string | undefined, genreId: string | undefined,
       let shows: any[] = [];
       if (tvGenreId) {
         const tvRes = await fetchTmdbWithFallback(
-          `/discover/tv?api_key=${process.env.TMDB_API_KEY}&with_genres=${tvGenreId}&sort_by=popularity.desc&vote_count.gte=200&page=${page}`,
+          `/discover/tv?api_key=${process.env.TMDB_API_KEY}&with_genres=${tvGenreId}&sort_by=${sortSpec.tv}&vote_count.gte=200&page=${page}`,
           tmdbLang
         );
         if (tvRes.ok) {
@@ -67,15 +71,15 @@ async function getMovies(query: string | undefined, genreId: string | undefined,
         }
       }
 
-      return [...movies, ...shows].sort((a, b) => (b.popularity ?? 0) - (a.popularity ?? 0));
+      return [...movies, ...shows].sort(sortSpec.compare);
     }, TTL.GENRE);
     return results || [];
   }
 
-  const cacheKey = `discover:popular:${page}:${tmdbLang}`;
+  const cacheKey = `discover:popular:${sort}:${page}:${tmdbLang}`;
   const results = await getWithFallback(cacheKey, async () => {
     const res = await fetchTmdbWithFallback(
-      `/discover/movie?api_key=${process.env.TMDB_API_KEY}&sort_by=popularity.desc&vote_count.gte=200&page=${page}`,
+      `/discover/movie?api_key=${process.env.TMDB_API_KEY}&sort_by=${sortSpec.movie}&vote_count.gte=200&page=${page}`,
       tmdbLang
     );
     if (!res.ok) throw new Error("TMDB request failed");
@@ -93,15 +97,17 @@ export default async function MoviesPage({
   const lang = await getLocale();
   const t = await getTranslations("Home");
   const tCommon = await getTranslations("Common");
+  const tSort = await getTranslations("Watched"); // etichete de sortare reutilizate
 
   const resolvedSearchParams = await searchParams;
   const parsedParams = homeSearchParamsSchema.parse(resolvedSearchParams);
   const query = parsedParams.search;
   const genreId = parsedParams.genre ? String(parsedParams.genre) : undefined;
   const genreName = parsedParams.name;
+  const sort = normalizeDiscoverSort(parsedParams.sort);
   const currentPage = parsedParams.page;
 
-  const movies = await getMovies(query, genreId, currentPage, lang);
+  const movies = await getMovies(query, genreId, sort, currentPage, lang);
 
   let pageTitle = t("popularMovies");
   if (query) {
@@ -115,15 +121,22 @@ export default async function MoviesPage({
     if (query) params.set("search", query);
     if (genreId) params.set("genre", genreId);
     if (genreName) params.set("name", genreName);
+    if (sort !== "popular") params.set("sort", sort);
     params.set("page", newPage.toString());
     return `/movies?${params.toString()}`;
   };
 
   return (
     <main className="p-8 max-w-7xl mx-auto flex-1 w-full flex flex-col">
-      <h2 className="text-2xl font-semibold mb-6 border-l-4 border-yellow-500 pl-3">
-        {pageTitle}
-      </h2>
+      <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
+        <h2 className="text-2xl font-semibold border-l-4 border-yellow-500 pl-3">
+          {pageTitle}
+        </h2>
+        {/* Sortarea nu se aplică la căutare (search/multi nu suportă sort_by). */}
+        {!query && (
+          <FilterDropdown paramKey="sort" anyLabel={tSort("sortPopularity")} options={discoverSortOptions(tSort)} />
+        )}
+      </div>
 
       {movies.length === 0 ? (
         <div className="text-center text-zinc-500 mt-20 text-lg italic">

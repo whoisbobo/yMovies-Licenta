@@ -6,16 +6,19 @@ import { pageParamSchema } from "../../lib/validation";
 import { getWithFallback, fetchTmdbWithFallback, TTL } from "../../lib/tmdbCache";
 import { toTmdbLang } from "../../lib/locale";
 import Pagination from "../../components/Pagination";
+import FilterDropdown from "../watched/FilterDropdown";
+import { getDiscoverSort, normalizeDiscoverSort, discoverSortOptions } from "../../lib/discoverSort";
 
-async function getPopularTVShows(page: number = 1, lang: string = "ro") {
+async function getPopularTVShows(sort: string, page: number = 1, lang: string = "ro") {
   const tmdbLang = toTmdbLang(lang);
-  const cacheKey = `discover:tv-popular:${page}:${tmdbLang}`;
+  const sortSpec = getDiscoverSort(sort);
+  const cacheKey = `discover:tv-popular:${sort}:${page}:${tmdbLang}`;
 
   // discover/tv + vote_count.gte, nu /tv/popular — la fel ca la filme, evităm
   // seriale obscure cu foarte puține voturi care apar temporar "populare".
   const results = await getWithFallback(cacheKey, async () => {
     const res = await fetchTmdbWithFallback(
-      `/discover/tv?api_key=${process.env.TMDB_API_KEY}&sort_by=popularity.desc&vote_count.gte=200&page=${page}`,
+      `/discover/tv?api_key=${process.env.TMDB_API_KEY}&sort_by=${sortSpec.tv}&vote_count.gte=200&page=${page}`,
       tmdbLang
     );
     if (!res.ok) throw new Error("TMDB request failed");
@@ -29,21 +32,33 @@ async function getPopularTVShows(page: number = 1, lang: string = "ro") {
 export default async function TvPage({
   searchParams,
 }: {
-  searchParams: Promise<{ page?: string }>;
+  searchParams: Promise<{ page?: string; sort?: string }>;
 }) {
   const lang = await getLocale();
   const t = await getTranslations("Tv");
   const tCommon = await getTranslations("Common");
+  const tSort = await getTranslations("Watched"); // etichete de sortare reutilizate
 
   const resolvedSearchParams = await searchParams;
   const currentPage = pageParamSchema.parse(resolvedSearchParams.page);
-  const tvShows = await getPopularTVShows(currentPage, lang);
+  const sort = normalizeDiscoverSort(resolvedSearchParams.sort);
+  const tvShows = await getPopularTVShows(sort, currentPage, lang);
+
+  const buildPageLink = (page: number) => {
+    const params = new URLSearchParams();
+    if (sort !== "popular") params.set("sort", sort);
+    params.set("page", page.toString());
+    return `/tv?${params.toString()}`;
+  };
 
   return (
     <main className="p-8 max-w-7xl mx-auto flex-1 w-full flex flex-col">
-      <h2 className="text-2xl font-semibold mb-6 border-l-4 border-yellow-500 pl-3">
-        {t("popularTv")}
-      </h2>
+      <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
+        <h2 className="text-2xl font-semibold border-l-4 border-yellow-500 pl-3">
+          {t("popularTv")}
+        </h2>
+        <FilterDropdown paramKey="sort" anyLabel={tSort("sortPopularity")} options={discoverSortOptions(tSort)} />
+      </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
         {tvShows.map((show: any) => (
@@ -69,7 +84,7 @@ export default async function TvPage({
 
       <Pagination
         currentPage={currentPage}
-        buildPageLink={(page) => `/tv?page=${page}`}
+        buildPageLink={buildPageLink}
         previousLabel={tCommon("previousPage")}
         nextLabel={tCommon("nextPage")}
         pageLabel={tCommon("page")}

@@ -12,6 +12,7 @@ export const homeSearchParamsSchema = z.object({
   search: z.string().trim().max(200).optional(),
   genre: z.coerce.number().int().positive().optional().catch(undefined),
   name: z.string().trim().max(100).optional(),
+  sort: z.string().trim().max(30).optional(),
   page: pageParamSchema,
 });
 
