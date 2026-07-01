@@ -126,7 +126,9 @@
   "Watched": {
     "mustLogin": "İzlenenleri görmek için giriş yapmalısın.",
     "title": "İzlenenler",
+    "userTitle": "{name} tarafından izlenenler",
     "empty": "Henüz hiçbir şeyi izlendi olarak işaretlemedin.",
+    "emptyOther": "Bu kullanıcı henüz hiçbir şeyi izlendi olarak işaretlemedi.",
     "unknownTitle": "Bilinmeyen başlık",
     "filterAny": "Tüm puanlar",
     "filterNone": "Puansız",

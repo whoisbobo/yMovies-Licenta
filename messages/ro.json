@@ -126,7 +126,9 @@
   "Watched": {
     "mustLogin": "Trebuie să te autentifici pentru a-ți vedea filmele văzute.",
     "title": "Văzute",
+    "userTitle": "Filmele văzute de {name}",
     "empty": "Nu ai marcat încă nimic ca văzut.",
+    "emptyOther": "Acest utilizator nu a marcat încă nimic ca văzut.",
     "unknownTitle": "Titlu necunoscut",
     "filterAny": "Orice notă",
     "filterNone": "Fără notă",

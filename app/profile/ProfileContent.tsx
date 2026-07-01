@@ -42,6 +42,7 @@ export default async function ProfileContent({
   const isOwn = viewerUserId === targetUserId;
   const watchlistHref = isOwn ? "/watchlist" : `/users/${dbUser.username}/watchlist`;
   const diaryHref = isOwn ? "/diary" : `/users/${dbUser.username}/diary`;
+  const watchedHref = isOwn ? "/watched" : `/users/${dbUser.username}/watched`;
 
   const [
     favorites,
@@ -128,7 +129,7 @@ export default async function ProfileContent({
   const maxRatingCount = Math.max(...ratingHistogram.map((r) => r.count), 1);
 
   const statBoxes = [
-    { label: t("statFilms"), value: watchedCount, href: isOwn ? "/watched" : null as string | null },
+    { label: t("statFilms"), value: watchedCount, href: watchedHref as string | null },
     { label: t("statFollowing"), value: followingCount, href: `/users/${dbUser.username}/following` },
     { label: t("statFollowers"), value: followersCount, href: `/users/${dbUser.username}/followers` },
   ];
@@ -284,7 +285,7 @@ export default async function ProfileContent({
       <section className="mb-12">
         <div className="flex items-center justify-between border-b border-zinc-800 pb-2 mb-4">
           <h2 className="text-sm font-bold uppercase tracking-wide text-zinc-400">{t("recentActivityTitle")}</h2>
-          <Link href={isOwn ? "/watched" : diaryHref} className="text-xs text-yellow-500 hover:text-yellow-400 font-medium">
+          <Link href={watchedHref} className="text-xs text-yellow-500 hover:text-yellow-400 font-medium">
             {t("seeAllReviews")}
           </Link>
         </div>

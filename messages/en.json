@@ -126,7 +126,9 @@
   "Watched": {
     "mustLogin": "You must log in to see your watched titles.",
     "title": "Watched",
+    "userTitle": "{name}'s watched",
     "empty": "You haven't marked anything as watched yet.",
+    "emptyOther": "This user hasn't marked anything as watched yet.",
     "unknownTitle": "Unknown title",
     "filterAny": "Any rating",
     "filterNone": "No rating",
