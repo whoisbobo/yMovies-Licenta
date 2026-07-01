@@ -115,6 +115,8 @@
   "Recommendations": {
     "title": "Recomandări pentru tine",
     "subtitle": "Pe baza recenziilor tale, bazate pe genurile: {genres}",
+    "basedOnTaste": "Pe baza gusturilor tale în",
+    "countLabel": "{count} sugestii",
     "noData": "Nu ai încă suficiente recenzii pentru recomandări personalizate. Recenzează câteva filme ca să începem!",
     "mustLogin": "Trebuie să te autentifici pentru a vedea recomandări personalizate.",
     "freeLimitNotice": "Vezi doar {count} recomandări gratuite. Abonează-te la Premium pentru lista completă.",

@@ -52,6 +52,7 @@ export type Recommendation = {
   posterPath: string | null;
   voteAverage: number;
   matchedGenre: string;
+  year: string | null;
 };
 
 export async function getRecommendations(
@@ -117,6 +118,7 @@ export async function getRecommendations(
         posterPath: movie.poster_path ?? null,
         voteAverage: movie.vote_average ?? 0,
         matchedGenre: genre.name,
+        year: (movie.release_date || movie.first_air_date || "").substring(0, 4) || null,
       });
     }
   };

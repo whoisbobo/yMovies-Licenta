@@ -115,6 +115,8 @@
   "Recommendations": {
     "title": "Sizin için öneriler",
     "subtitle": "Yorumlarınıza göre, eşleşen türler: {genres}",
+    "basedOnTaste": "Zevkinize göre",
+    "countLabel": "{count} öneri",
     "noData": "Kişiselleştirilmiş öneriler için henüz yeterli yorumunuz yok. Başlamak için birkaç filmi değerlendirin!",
     "mustLogin": "Kişiselleştirilmiş önerileri görmek için giriş yapmalısınız.",
     "freeLimitNotice": "Sadece {count} ücretsiz öneri görüyorsunuz. Tam liste için Premium'a abone olun.",

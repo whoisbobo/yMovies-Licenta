@@ -115,6 +115,8 @@
   "Recommendations": {
     "title": "Recommendations for you",
     "subtitle": "Based on your reviews, matching genres: {genres}",
+    "basedOnTaste": "Based on your taste in",
+    "countLabel": "{count} picks",
     "noData": "You don't have enough reviews yet for personalized recommendations. Review a few movies to get started!",
     "mustLogin": "You must log in to see personalized recommendations.",
     "freeLimitNotice": "You're seeing only {count} free recommendations. Subscribe to Premium for the full list.",
