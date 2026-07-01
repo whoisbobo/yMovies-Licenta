@@ -1,5 +1,5 @@
 import { prisma } from "./prisma";
-import { getCachedMovieDetails, fetchTmdbWithFallback } from "./tmdbCache";
+import { getCachedMovieDetails, fetchTmdbWithFallback, getWithFallback, TTL } from "./tmdbCache";
 import { toTmdbLang } from "./locale";
 
 type GenreScore = { id: number; name: string; score: number; count: number };
@@ -89,17 +89,24 @@ export async function getRecommendations(
   const perGenreQuota = Math.ceil(limit / topGenres.length);
   const genreResults = new Map<number, any[]>();
 
+  // Pool-ul de filme per gen e identic pentru toți userii → îl cache-uim 12h
+  // (TTL.GENRE) ca să nu batem la TMDB la fiecare vizită pe pagina de recomandări.
+  // Personalizarea (afinitate + excluderi) rămâne live, calculată din DB de mai jos.
   for (const genre of topGenres) {
-    const res = await fetchTmdbWithFallback(
-      `/discover/movie?api_key=${process.env.TMDB_API_KEY}&with_genres=${genre.id}&sort_by=popularity.desc&vote_count.gte=200&page=1`,
-      tmdbLang
+    const results = await getWithFallback<any[]>(
+      `discover:rec-genre:${genre.id}:${tmdbLang}`,
+      async () => {
+        const res = await fetchTmdbWithFallback(
+          `/discover/movie?api_key=${process.env.TMDB_API_KEY}&with_genres=${genre.id}&sort_by=popularity.desc&vote_count.gte=200&page=1`,
+          tmdbLang
+        );
+        if (!res.ok) throw new Error("TMDB discover failed");
+        const data = await res.json();
+        return data.results || [];
+      },
+      TTL.GENRE
     );
-    if (!res.ok) {
-      genreResults.set(genre.id, []);
-      continue;
-    }
-    const data = await res.json();
-    genreResults.set(genre.id, data.results || []);
+    genreResults.set(genre.id, results || []);
   }
 
   const pushFromGenre = (genre: GenreScore, quota: number) => {
