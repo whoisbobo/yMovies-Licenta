@@ -610,10 +610,14 @@ async function createNotification(
 ) {
   if (recipientId === actorId) return;
   try {
+    // Dedup: o singură notificare per (recipient, actor, tip, film) — la repetare
+    // (re-follow / re-like) o reîmprospătăm în loc să adunăm duplicate.
+    await prisma.notification.deleteMany({ where: { recipientId, actorId, type, movieId: movieId ?? null } });
     await prisma.notification.create({
       data: { recipientId, actorId, type, movieId: movieId ?? null, mediaType: mediaType ?? null },
     });
-    revalidatePath("/notifications");
+    // Revalidăm layout-ul rădăcină ca badge-ul de necitite să se actualizeze peste tot.
+    revalidatePath("/", "layout");
   } catch {
     // O eroare la notificare nu trebuie să strice acțiunea principală.
   }
@@ -623,7 +627,7 @@ export async function markAllNotificationsRead() {
   const { userId } = await auth();
   if (!userId) throw new Error("Neautorizat");
   await prisma.notification.updateMany({ where: { recipientId: userId, read: false }, data: { read: true } });
-  revalidatePath("/notifications");
+  revalidatePath("/", "layout");
 }
 
 // ===== Comentarii & like-uri la recenzii =====
@@ -683,13 +687,15 @@ export async function deleteReviewComment(commentIdRaw: string) {
 
   const comment = await prisma.reviewComment.findUnique({
     where: { id: commentId },
-    select: { userId: true, review: { select: { movieId: true } } },
+    select: { userId: true, review: { select: { movieId: true, userId: true } } },
   });
   if (!comment) throw new Error("Comentariul nu există");
 
   const me = await prisma.user.findUnique({ where: { id: userId }, select: { role: true } });
   const isAdmin = me?.role === "ADMIN";
-  if (comment.userId !== userId && !isAdmin) throw new Error("Nu ai permisiunea");
+  const isReviewOwner = comment.review.userId === userId;
+  // Poate șterge: autorul comentariului, autorul recenziei (moderare) sau adminul.
+  if (comment.userId !== userId && !isReviewOwner && !isAdmin) throw new Error("Nu ai permisiunea");
 
   await prisma.reviewComment.delete({ where: { id: commentId } });
   revalidatePath(`/movie/${comment.review.movieId}`);
@@ -753,6 +759,9 @@ export async function setUserPremium(targetUserId: string, isPremiumRaw: boolean
   await assertAdmin();
   const target = z.string().trim().min(1).parse(targetUserId);
   const isPremium = z.boolean().parse(isPremiumRaw);
+  // Nu atingem premium-ul gestionat de Stripe (ar desincroniza DB-ul de abonament).
+  const u = await prisma.user.findUnique({ where: { id: target }, select: { stripeSubscriptionId: true } });
+  if (u?.stripeSubscriptionId) throw new Error("Premium gestionat de Stripe — nu poate fi modificat manual");
   await prisma.user.update({ where: { id: target }, data: { isPremium } });
   revalidatePath("/admin");
 }

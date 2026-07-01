@@ -207,7 +207,7 @@ export default async function MoviePage({
                       {(dbUser?.role === "ADMIN" || dbUser?.id === review.userId) && <DeleteButton reviewId={review.id} />}
                     </div>
                   </div>
-                  <SpoilerComment text={review.comment ?? ""} isSpoiler={review.hasSpoiler} />
+                  <SpoilerComment text={review.comment ?? ""} isSpoiler={review.hasSpoiler && review.userId !== userId} />
 
                   <ReviewSocial
                     reviewId={review.id}
@@ -217,6 +217,7 @@ export default async function MoviePage({
                     isLoggedIn={!!userId}
                     currentUserId={userId ?? null}
                     isAdmin={dbUser?.role === "ADMIN"}
+                    isReviewOwner={review.userId === userId}
                   />
                 </div>
               ))

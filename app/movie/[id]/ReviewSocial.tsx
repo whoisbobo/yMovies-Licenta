@@ -14,6 +14,7 @@ export default function ReviewSocial({
   isLoggedIn,
   currentUserId,
   isAdmin,
+  isReviewOwner,
 }: {
   reviewId: number;
   initialLikeCount: number;
@@ -22,6 +23,7 @@ export default function ReviewSocial({
   isLoggedIn: boolean;
   currentUserId: string | null;
   isAdmin: boolean;
+  isReviewOwner: boolean;
 }) {
   const t = useTranslations("ReviewSocial");
   const [liked, setLiked] = useState(initialLiked);
@@ -124,7 +126,7 @@ export default function ReviewSocial({
                       {c.displayName || c.username}
                     </Link>
                     <span className="text-[11px] text-zinc-600">{new Date(c.createdAt).toLocaleDateString()}</span>
-                    {(currentUserId === c.userId || isAdmin) && (
+                    {(currentUserId === c.userId || isReviewOwner || isAdmin) && (
                       <button type="button" onClick={() => handleDelete(c.id)} className="text-[11px] text-zinc-600 hover:text-red-400 transition-colors ml-auto">
                         {t("deleteLabel")}
                       </button>
