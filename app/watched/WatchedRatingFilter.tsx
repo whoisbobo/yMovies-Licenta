@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 
 const STAR_PATH =
@@ -46,6 +46,7 @@ function Stars({ value, colorClass, size = "w-4 h-4" }: { value: number; colorCl
 export default function WatchedRatingFilter({ current }: { current: RatingFilter }) {
   const t = useTranslations("Watched");
   const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
   const [open, setOpen] = useState(false);
   const [hover, setHover] = useState(0);
@@ -65,7 +66,7 @@ export default function WatchedRatingFilter({ current }: { current: RatingFilter
     if (param === null) params.delete("rating");
     else params.set("rating", param);
     const qs = params.toString();
-    router.push(qs ? `/watched?${qs}` : "/watched");
+    router.push(qs ? `${pathname}?${qs}` : pathname);
   };
 
   // Nota selectată (din URL) și ce afișăm pe stele (hover are prioritate).

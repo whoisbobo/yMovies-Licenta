@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 export type FilterOption = { value: string; label: string };
 
@@ -15,6 +15,7 @@ export default function FilterDropdown({
   options: FilterOption[];
 }) {
   const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
   const [open, setOpen] = useState(false);
   const boxRef = useRef<HTMLDivElement>(null);
@@ -35,8 +36,9 @@ export default function FilterDropdown({
     const params = new URLSearchParams(searchParams.toString());
     if (value === null) params.delete(paramKey);
     else params.set(paramKey, value);
+    params.delete("page"); // orice schimbare de filtru repornește de la prima pagină
     const qs = params.toString();
-    router.push(qs ? `/watched?${qs}` : "/watched");
+    router.push(qs ? `${pathname}?${qs}` : pathname);
   };
 
   return (

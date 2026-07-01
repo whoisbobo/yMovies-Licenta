@@ -1,9 +1,10 @@
 "use client";
 
-import { useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 export default function ViewToggle() {
   const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
   const view = searchParams.get("view") === "compact" ? "compact" : "grid";
 
@@ -12,7 +13,7 @@ export default function ViewToggle() {
     if (v === "grid") params.delete("view");
     else params.set("view", v);
     const qs = params.toString();
-    router.push(qs ? `/watched?${qs}` : "/watched");
+    router.push(qs ? `${pathname}?${qs}` : pathname);
   };
 
   const btn = (active: boolean) =>
