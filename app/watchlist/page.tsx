@@ -3,7 +3,11 @@ import { getTranslations, getLocale } from "next-intl/server";
 import { toTmdbLang } from "../../lib/locale";
 import WatchlistGrid, { fetchDetailedWatchlist } from "./WatchlistGrid";
 
-export default async function WatchlistPage() {
+export default async function WatchlistPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ decade?: string; genre?: string; sort?: string; view?: string }>;
+}) {
   const { userId } = await auth();
   const lang = await getLocale();
   const t = await getTranslations("Watchlist");
@@ -16,6 +20,7 @@ export default async function WatchlistPage() {
     );
   }
 
+  const sp = await searchParams;
   const movies = await fetchDetailedWatchlist(userId, toTmdbLang(lang));
 
   return (
@@ -27,7 +32,7 @@ export default async function WatchlistPage() {
       {movies.length === 0 ? (
         <div className="text-center text-zinc-500 mt-20 text-lg italic">{t("empty")}</div>
       ) : (
-        <WatchlistGrid movies={movies} />
+        <WatchlistGrid movies={movies} sp={sp} />
       )}
     </main>
   );

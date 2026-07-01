@@ -7,8 +7,10 @@ import WatchlistGrid, { fetchDetailedWatchlist } from "../../../watchlist/Watchl
 
 export default async function UserWatchlistPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ username: string }>;
+  searchParams: Promise<{ decade?: string; genre?: string; sort?: string; view?: string }>;
 }) {
   const { username } = await params;
   const lang = await getLocale();
@@ -20,6 +22,7 @@ export default async function UserWatchlistPage({
   });
   if (!target) notFound();
 
+  const sp = await searchParams;
   const movies = await fetchDetailedWatchlist(target.id, toTmdbLang(lang));
   const name = target.displayName || target.username;
 
@@ -35,7 +38,7 @@ export default async function UserWatchlistPage({
       {movies.length === 0 ? (
         <div className="text-center text-zinc-500 mt-20 text-lg italic">{t("emptyOther")}</div>
       ) : (
-        <WatchlistGrid movies={movies} />
+        <WatchlistGrid movies={movies} sp={sp} />
       )}
     </main>
   );
