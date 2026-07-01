@@ -130,8 +130,8 @@ export default async function ProfileContent({
 
   const statBoxes = [
     { label: t("statFilms"), value: watchedCount, href: watchedHref as string | null },
-    { label: t("statFollowing"), value: followingCount, href: `/users/${dbUser.username}/following` },
     { label: t("statFollowers"), value: followersCount, href: `/users/${dbUser.username}/followers` },
+    { label: t("statFollowing"), value: followingCount, href: `/users/${dbUser.username}/following` },
   ];
 
   return (
