@@ -31,7 +31,7 @@ export default async function CategoriesPage() {
   ];
 
   return (
-    <main className="p-8 max-w-7xl mx-auto flex-1 w-full">
+    <main className="p-4 sm:p-8 max-w-7xl mx-auto flex-1 w-full">
       <h2 className="text-2xl font-semibold mb-6 border-l-4 border-yellow-500 pl-3">
         {t("title")}
       </h2>

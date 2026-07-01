@@ -35,7 +35,7 @@ export default async function FollowersPage({
   const followingSet = new Set(viewerFollowing.map((f) => f.followingId));
 
   return (
-    <main className="p-8 max-w-3xl mx-auto flex-1 w-full">
+    <main className="p-4 sm:p-8 max-w-3xl mx-auto flex-1 w-full">
       <Link href={`/users/${target.username}`} className="text-xs text-yellow-500 hover:text-yellow-400 font-medium">
         ← {target.displayName || target.username}
       </Link>

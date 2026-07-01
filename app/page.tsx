@@ -99,7 +99,7 @@ export default async function Home() {
   );
 
   return (
-    <main className="p-8 max-w-7xl mx-auto flex-1 w-full">
+    <main className="p-4 sm:p-8 max-w-7xl mx-auto flex-1 w-full">
       {/* Hero */}
       <div className="text-center py-8 mb-4">
         <h1 className="text-4xl sm:text-5xl font-extrabold leading-[1.2] bg-gradient-to-r from-yellow-400 to-amber-500 bg-clip-text text-transparent inline-block px-1 pb-2">

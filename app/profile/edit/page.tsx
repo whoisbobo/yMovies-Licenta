@@ -17,7 +17,7 @@ export default async function ProfileEditPage() {
 
   if (!userId) {
     return (
-      <main className="p-8 text-center mt-20 text-xl text-zinc-400">
+      <main className="p-4 sm:p-8 text-center mt-20 text-xl text-zinc-400">
         {t("mustLogin")}
       </main>
     );
@@ -52,7 +52,7 @@ export default async function ProfileEditPage() {
   );
 
   return (
-    <main className="p-8 max-w-6xl mx-auto flex-1 w-full">
+    <main className="p-4 sm:p-8 max-w-6xl mx-auto flex-1 w-full">
       <div className="flex items-center justify-between mb-10">
         <h1 className="text-2xl font-bold text-zinc-100">{t("editProfile")}</h1>
         <Link

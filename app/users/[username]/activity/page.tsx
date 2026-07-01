@@ -27,7 +27,7 @@ export default async function UserActivityPage({
   const name = target.displayName || target.username;
 
   return (
-    <main className="p-8 max-w-2xl mx-auto flex-1 w-full">
+    <main className="p-4 sm:p-8 max-w-2xl mx-auto flex-1 w-full">
       <Link href={`/users/${target.username}`} className="text-xs text-yellow-500 hover:text-yellow-400 font-medium">
         ← {name}
       </Link>

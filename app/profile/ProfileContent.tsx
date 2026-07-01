@@ -36,7 +36,7 @@ export default async function ProfileContent({
 
   const dbUser = await prisma.user.findUnique({ where: { id: targetUserId } });
   if (!dbUser) {
-    return <main className="p-8 text-center mt-20 text-xl text-zinc-400">{t("notFound")}</main>;
+    return <main className="p-4 sm:p-8 text-center mt-20 text-xl text-zinc-400">{t("notFound")}</main>;
   }
 
   const isOwn = viewerUserId === targetUserId;
@@ -135,7 +135,7 @@ export default async function ProfileContent({
   ];
 
   return (
-    <main className="p-8 max-w-6xl mx-auto flex-1 w-full">
+    <main className="p-4 sm:p-8 max-w-6xl mx-auto flex-1 w-full">
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-6 pb-6 mb-6 border-b border-zinc-800">
         <div className="flex items-center gap-5">

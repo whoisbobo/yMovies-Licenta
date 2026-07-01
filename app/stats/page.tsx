@@ -37,7 +37,7 @@ export default async function StatsPage() {
 
   if (!userId) {
     return (
-      <main className="p-8 text-center mt-20 text-xl text-zinc-400">
+      <main className="p-4 sm:p-8 text-center mt-20 text-xl text-zinc-400">
         {t("mustLogin")}
       </main>
     );
@@ -48,7 +48,7 @@ export default async function StatsPage() {
 
   if (!isPremium) {
     return (
-      <main className="p-8 max-w-2xl mx-auto mt-16 text-center">
+      <main className="p-4 sm:p-8 max-w-2xl mx-auto mt-16 text-center">
         <h2 className="text-2xl font-bold mb-3">{t("title")}</h2>
         <p className="text-zinc-400 mb-8">{t("premiumRequired")}</p>
         <Link
@@ -65,7 +65,7 @@ export default async function StatsPage() {
 
   if (stats.totalWatched === 0) {
     return (
-      <main className="p-8 text-center mt-20 text-xl text-zinc-500 italic">{t("noData")}</main>
+      <main className="p-4 sm:p-8 text-center mt-20 text-xl text-zinc-500 italic">{t("noData")}</main>
     );
   }
 
@@ -97,7 +97,7 @@ export default async function StatsPage() {
   const showBottom = stats.totalRated > 5;
 
   return (
-    <main className="p-8 max-w-5xl mx-auto flex-1 w-full">
+    <main className="p-4 sm:p-8 max-w-5xl mx-auto flex-1 w-full">
       <h2 className="text-2xl font-semibold mb-2 border-l-4 border-yellow-500 pl-3">{t("title")}</h2>
       <p className="text-zinc-500 mb-8 pl-4">{t("subtitle", { count: stats.totalWatched })}</p>
 

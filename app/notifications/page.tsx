@@ -16,7 +16,7 @@ export default async function NotificationsPage() {
   const t = await getTranslations("Notifications");
 
   if (!userId) {
-    return <main className="p-8 text-center mt-20 text-xl text-zinc-400">{t("mustLogin")}</main>;
+    return <main className="p-4 sm:p-8 text-center mt-20 text-xl text-zinc-400">{t("mustLogin")}</main>;
   }
 
   const lang = await getLocale();
@@ -44,7 +44,7 @@ export default async function NotificationsPage() {
     type === "FOLLOW" ? t("verbFollow") : type === "REVIEW_LIKE" ? t("verbLike") : t("verbComment");
 
   return (
-    <main className="p-8 max-w-2xl mx-auto flex-1 w-full">
+    <main className="p-4 sm:p-8 max-w-2xl mx-auto flex-1 w-full">
       <MarkNotificationsRead />
       <h2 className="text-2xl font-semibold mb-6 border-l-4 border-yellow-500 pl-3">{t("title")}</h2>
 

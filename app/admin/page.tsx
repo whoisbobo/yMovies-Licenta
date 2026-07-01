@@ -17,13 +17,13 @@ export default async function AdminPage() {
   const t = await getTranslations("Admin");
 
   if (!userId) {
-    return <main className="p-8 text-center mt-20 text-xl text-zinc-400">{t("mustLogin")}</main>;
+    return <main className="p-4 sm:p-8 text-center mt-20 text-xl text-zinc-400">{t("mustLogin")}</main>;
   }
 
   const me = await prisma.user.findUnique({ where: { id: userId }, select: { role: true } });
   if (me?.role !== "ADMIN") {
     return (
-      <main className="p-8 text-center mt-20">
+      <main className="p-4 sm:p-8 text-center mt-20">
         <h2 className="text-2xl font-bold text-red-400 mb-2">{t("accessDenied")}</h2>
         <p className="text-zinc-500">{t("accessDeniedHint")}</p>
       </main>
@@ -78,7 +78,7 @@ export default async function AdminPage() {
   ];
 
   return (
-    <main className="p-8 max-w-6xl mx-auto flex-1 w-full">
+    <main className="p-4 sm:p-8 max-w-6xl mx-auto flex-1 w-full">
       <h2 className="text-2xl font-semibold mb-8 border-l-4 border-yellow-500 pl-3">{t("title")}</h2>
 
       {/* Dashboard */}

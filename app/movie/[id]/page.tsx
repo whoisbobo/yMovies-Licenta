@@ -130,7 +130,7 @@ export default async function MoviePage({
   const hasReviewOrRating = myRating > 0 || (userId ? reviews.some((r) => r.userId === userId) : false);
 
   return (
-    <main className="max-w-6xl mx-auto px-8 py-8 flex flex-col md:flex-row gap-12 flex-1 w-full">
+    <main className="max-w-6xl mx-auto px-4 sm:px-8 py-8 flex flex-col md:flex-row gap-12 flex-1 w-full">
       <div className="w-full md:w-1/3 flex-shrink-0">
         <img src={`https://image.tmdb.org/t/p/w500${movie.poster_path}`} alt={title} className="w-full rounded-xl shadow-2xl shadow-yellow-500/10 border border-zinc-800" />
       </div>

@@ -22,7 +22,7 @@ export default async function MembersPage() {
   const others: UserListItem[] = users.filter((u) => u.id !== viewerUserId);
 
   return (
-    <main className="p-8 max-w-3xl mx-auto flex-1 w-full">
+    <main className="p-4 sm:p-8 max-w-3xl mx-auto flex-1 w-full">
       <h2 className="text-2xl font-semibold mb-6 border-l-4 border-yellow-500 pl-3">{t("title")}</h2>
       <UserList users={others} followingSet={followingSet} viewerUserId={viewerUserId ?? null} emptyLabel={t("empty")} />
     </main>

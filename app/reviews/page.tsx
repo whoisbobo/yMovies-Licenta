@@ -18,7 +18,7 @@ export default async function MyReviewsPage() {
 
   if (!userId) {
     return (
-      <main className="p-8 text-center mt-20 text-xl text-zinc-400">
+      <main className="p-4 sm:p-8 text-center mt-20 text-xl text-zinc-400">
         {t("mustLogin")}
       </main>
     );
@@ -39,7 +39,7 @@ export default async function MyReviewsPage() {
   );
 
   return (
-    <main className="p-8 max-w-4xl mx-auto flex-1 w-full flex flex-col">
+    <main className="p-4 sm:p-8 max-w-4xl mx-auto flex-1 w-full flex flex-col">
       <h2 className="text-2xl font-semibold mb-6 border-l-4 border-yellow-500 pl-3">
         {t("title", { count: reviews.length })}
       </h2>

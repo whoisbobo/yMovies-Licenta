@@ -13,7 +13,7 @@ export default async function RecommendationsPage() {
 
   if (!userId) {
     return (
-      <main className="p-8 text-center mt-20 text-xl text-zinc-400">
+      <main className="p-4 sm:p-8 text-center mt-20 text-xl text-zinc-400">
         {t("mustLogin")}
       </main>
     );
@@ -25,7 +25,7 @@ export default async function RecommendationsPage() {
   const { recommendations, topGenres, hasEnoughData } = await getRecommendations(userId, lang, isPremium);
 
   return (
-    <main className="p-8 max-w-7xl mx-auto flex-1 w-full flex flex-col">
+    <main className="p-4 sm:p-8 max-w-7xl mx-auto flex-1 w-full flex flex-col">
       {/* Header */}
       <header className="mb-8">
         <div className="flex items-center gap-3">

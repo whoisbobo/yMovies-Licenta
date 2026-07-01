@@ -49,7 +49,7 @@ export default async function WatchedPage({
 
   if (!userId) {
     return (
-      <main className="p-8 text-center mt-20 text-xl text-zinc-400">
+      <main className="p-4 sm:p-8 text-center mt-20 text-xl text-zinc-400">
         {t("mustLogin")}
       </main>
     );
@@ -147,7 +147,7 @@ export default async function WatchedPage({
   ];
 
   return (
-    <main className="p-8 max-w-7xl mx-auto flex-1 w-full">
+    <main className="p-4 sm:p-8 max-w-7xl mx-auto flex-1 w-full">
       <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
         <h2 className="text-2xl font-semibold border-l-4 border-yellow-500 pl-3">
           {t("title")}
