@@ -137,7 +137,15 @@ export default async function AdminPage() {
                     {new Date(u.createdAt).toLocaleDateString(tmdbLang)}
                   </td>
                   <td className="px-4 py-3">
-                    <AdminUserControls userId={u.id} role={u.role} isPremium={u.isPremium} />
+                    <div className="flex flex-wrap items-center gap-2 justify-end">
+                      <Link
+                        href={`/admin/users/${u.username}`}
+                        className="px-2.5 py-1 rounded text-xs font-medium border border-zinc-700 text-zinc-300 hover:bg-white/5 transition-colors"
+                      >
+                        {t("viewStats")}
+                      </Link>
+                      <AdminUserControls userId={u.id} role={u.role} isPremium={u.isPremium} />
+                    </div>
                   </td>
                 </tr>
               ))}

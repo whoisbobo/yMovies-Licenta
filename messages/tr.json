@@ -167,6 +167,9 @@
   },
   "Admin": {
     "title": "Yönetim paneli",
+    "userStatsTitle": "İstatistikler — {name}",
+    "viewStats": "İstatistikler",
+    "backToPanel": "Yönetim paneli",
     "mustLogin": "Giriş yapmalısın.",
     "accessDenied": "Erişim reddedildi",
     "accessDeniedHint": "Bu sayfa yalnızca yöneticiler içindir.",

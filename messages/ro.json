@@ -167,6 +167,9 @@
   },
   "Admin": {
     "title": "Panou de administrare",
+    "userStatsTitle": "Statistici — {name}",
+    "viewStats": "Statistici",
+    "backToPanel": "Panou de administrare",
     "mustLogin": "Trebuie să te autentifici.",
     "accessDenied": "Acces interzis",
     "accessDeniedHint": "Această pagină e doar pentru administratori.",

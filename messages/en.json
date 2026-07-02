@@ -167,6 +167,9 @@
   },
   "Admin": {
     "title": "Admin panel",
+    "userStatsTitle": "Statistics — {name}",
+    "viewStats": "Stats",
+    "backToPanel": "Admin panel",
     "mustLogin": "You must log in.",
     "accessDenied": "Access denied",
     "accessDeniedHint": "This page is for administrators only.",
