@@ -2,60 +2,8 @@ import { prisma } from "./prisma";
 import { getCachedMovieDetails } from "./tmdbCache";
 
 export type GenreStat = { name: string; count: number };
-export type YearStat = { year: number; count: number };
 
 const TOP_GENRES_COUNT = 8;
-
-/**
- * Statistici de vizionare pentru funcția Premium "Ce filme îmi plac" —
- * agregă genurile și anii de lansare din istoricul de recenzii al userului,
- * folosind datele deja cache-uite (PageCache), fără cereri noi către TMDB.
- */
-export async function getViewingStats(
-  userId: string,
-  lang: string
-): Promise<{ genreStats: GenreStat[]; yearStats: YearStat[]; totalReviews: number }> {
-  const ratings = await prisma.rating.findMany({
-    where: { userId },
-    select: { movieId: true, mediaType: true },
-  });
-
-  const genreCounts = new Map<string, number>();
-  const yearCounts = new Map<number, number>();
-
-  await Promise.all(
-    ratings.map(async (review) => {
-      const details = await getCachedMovieDetails(review.movieId, review.mediaType, lang);
-      if (!details) return;
-
-      const genres = (details as { genres?: { id: number; name: string }[] }).genres;
-      genres?.forEach((genre) => {
-        genreCounts.set(genre.name, (genreCounts.get(genre.name) ?? 0) + 1);
-      });
-
-      const dateStr =
-        (details as { release_date?: string; first_air_date?: string }).release_date ||
-        (details as { release_date?: string; first_air_date?: string }).first_air_date;
-      if (dateStr) {
-        const year = parseInt(dateStr.substring(0, 4), 10);
-        if (!Number.isNaN(year)) {
-          yearCounts.set(year, (yearCounts.get(year) ?? 0) + 1);
-        }
-      }
-    })
-  );
-
-  const genreStats = Array.from(genreCounts.entries())
-    .map(([name, count]) => ({ name, count }))
-    .sort((a, b) => b.count - a.count)
-    .slice(0, TOP_GENRES_COUNT);
-
-  const yearStats = Array.from(yearCounts.entries())
-    .map(([year, count]) => ({ year, count }))
-    .sort((a, b) => a.year - b.year);
-
-  return { genreStats, yearStats, totalReviews: ratings.length };
-}
 
 export type RatingBucket = { rating: number; count: number };
 
@@ -228,10 +176,12 @@ export async function getDetailedStats(userId: string, tmdbLang: string): Promis
     .sort((a, b) => b.avg - a.avg)
     .slice(0, 8);
 
-  // Top / flop filme notate.
+  // Top / flop filme notate. bottomRated pornește după top-ul de 5, ca să nu se
+  // suprapună cu topRated când sunt doar 6-10 filme notate (altfel același film
+  // ar apărea și la "cel mai bine notat" și la "cel mai slab notat").
   const sortedRated = [...ratedFilms].sort((a, b) => b.rating - a.rating);
   const topRated = sortedRated.slice(0, 5);
-  const bottomRated = sortedRated.slice().reverse().slice(0, 5);
+  const bottomRated = sortedRated.slice(Math.max(5, sortedRated.length - 5)).reverse();
 
   const tvCount = watched.filter((w) => w.mediaType === "tv").length;
 

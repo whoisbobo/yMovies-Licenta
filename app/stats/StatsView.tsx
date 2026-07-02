@@ -72,7 +72,7 @@ export default async function StatsView({
   const splitTotal = stats.moviesCount + stats.tvCount;
   const moviePct = splitTotal ? Math.round((stats.moviesCount / splitTotal) * 100) : 0;
   const maxGenreRating = 5;
-  const showBottom = stats.totalRated > 5;
+  const showBottom = stats.bottomRated.length > 0;
 
   return (
     <main className="p-4 sm:p-8 max-w-5xl mx-auto flex-1 w-full">
