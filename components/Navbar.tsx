@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState, useEffect, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { SignInButton, SignUpButton, UserButton, useAuth } from "@clerk/nextjs";
 import { useTranslations } from "next-intl";
 import LanguageSwitcher from "./LanguageSwitcher";
@@ -14,8 +14,14 @@ export default function Navbar({ isAdmin = false, unreadNotifications = 0 }: { i
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const router = useRouter();
+  const pathname = usePathname();
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const searchBoxRef = useRef<HTMLDivElement>(null);
+
+  // Închide meniul mobil la orice schimbare de pagină (logo, iconițe, panou etc.)
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [pathname]);
 
   // Am adăugat "isLoaded" pentru a preveni acel flicker de 1 secundă
   const { isLoaded, userId } = useAuth();

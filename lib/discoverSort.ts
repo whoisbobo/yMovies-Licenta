@@ -10,10 +10,21 @@ export type DiscoverSortSpec = {
   compare: (a: any, b: any) => number;
 };
 
-function dateNum(item: any): number {
+function dateNum(item: any): number | null {
   const d = item.release_date || item.first_air_date || "";
   const t = Date.parse(d);
-  return Number.isNaN(t) ? -Infinity : t;
+  return Number.isNaN(t) ? null : t;
+}
+
+// Comparator după dată; elementele fără dată merg mereu la final, indiferent de direcție.
+function byDate(dir: "new" | "old") {
+  return (a: any, b: any) => {
+    const da = dateNum(a);
+    const db = dateNum(b);
+    if (da === null) return db === null ? 0 : 1;
+    if (db === null) return -1;
+    return dir === "new" ? db - da : da - db;
+  };
 }
 
 export const DISCOVER_SORTS: Record<string, DiscoverSortSpec> = {
@@ -30,12 +41,12 @@ export const DISCOVER_SORTS: Record<string, DiscoverSortSpec> = {
   "release-new": {
     movie: "primary_release_date.desc",
     tv: "first_air_date.desc",
-    compare: (a, b) => dateNum(b) - dateNum(a),
+    compare: byDate("new"),
   },
   "release-old": {
     movie: "primary_release_date.asc",
     tv: "first_air_date.asc",
-    compare: (a, b) => dateNum(a) - dateNum(b),
+    compare: byDate("old"),
   },
 };
 
