@@ -93,9 +93,12 @@ const DEFAULT_MAX_AGE_MS = HOUR_MS;
 
 // TTL-uri diferențiate per tip de listă: cele cu conținut stabil (popular, genre)
 // pot fi cache-uite mult mai mult timp decât căutările, care variază per query.
+// POPULAR/GENRE = 24h, aliniat cu cron-ul zilnic de sync (vezi vercel.json):
+// cron-ul reîmprospătează la 4 UTC, iar TTL-ul acoperă exact intervalul până la
+// următoarea rulare — fără fereastră în care cache-ul e considerat expirat.
 export const TTL = {
-  POPULAR: 12 * HOUR_MS,
-  GENRE: 12 * HOUR_MS,
+  POPULAR: 24 * HOUR_MS,
+  GENRE: 24 * HOUR_MS,
   SEARCH: 2 * HOUR_MS,
 } as const;
 
